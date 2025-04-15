@@ -5,3 +5,8 @@
 .vscode/ipch
 build
 Microcontroller\build\CMakeFiles\CMakeError.log
+Microcontroller/sdkconfig
+Microcontroller/sdkconfig.Cyclops
+Microcontroller/sdkconfig.Cyclops.old
+Microcontroller/sdkconfig.old
+Microcontroller/platformio.ini

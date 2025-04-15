@@ -34,7 +34,7 @@ import jakarta.annotation.PreDestroy;
 public class MqttConfig {
 
     // MQTT Broker Information
-    private static final String BACKEND_IP = "192.168.4.2";
+    private static final String BACKEND_IP = "192.168.1.105";
     private static final String[] serverUri = { "tcp://" + BACKEND_IP + ":1883" };
     private static final String[] RTOPICS = { "Mapping", "Messages", "Battery", "Barrier" };
     private static final String[] STOPICS = { "Instruction" };

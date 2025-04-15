@@ -28,7 +28,7 @@
 #define INST_MAX_SIZE 20    // Maximum size of the instruction
 
 static const char *TAG = "HTTP_HANDLER";
-static const char *URL = "http://192.168.4.2:8080/instruction/last"; // Backend URL
+static const char *URL = "http://192.168.1.105:8080/instruction/last"; // Backend URL
 
 // Static function declaration
 static void decodeInstruction(int, char *);
