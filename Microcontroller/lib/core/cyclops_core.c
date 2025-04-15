@@ -31,6 +31,7 @@
 #include "mapping.h"
 #include "heap_trace_helper.h"
 #include "debug_helper.h"
+#include "client_mode.h"
 
 static const char *TAG = "CYCLOPS_CORE";
 TaskHandle_t servoInterruptionTaskHandler = NULL;
@@ -85,24 +86,35 @@ esp_err_t system_init()
     DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Luces Service Iniciado!"));
     LOG_MESSAGE_I(TAG, "Luces Service Iniciado!");
 
+    /* Idealmente quisiera que sea en una macro */
 
-    DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Iniciando Server Service..."));
-    err = initialize_server();
+    // DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Iniciando Server Service..."));
+    // err = initialize_server();
+    // if (err != ESP_OK)
+    // {
+    //     DEBUGING_ESP_LOG(ESP_LOGE(TAG, "ERROR SETTING UP SERVER:  %s", esp_err_to_name(err)));
+    //     return ESP_FAIL;
+    // }
+    // DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Server Service Iniciado!"));
+
+    // DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Esperando conexión del cliente..."));
+    // err = wait_for_client_connection();
+    // if (err != ESP_OK)
+    // {
+    //     DEBUGING_ESP_LOG(ESP_LOGE(TAG, "ERROR - WAITING FOR CLIENT: %s", esp_err_to_name(err)));
+    //     return ESP_FAIL;
+    // }
+    // DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Cliente Conectado!"));
+
+    DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Conectandose al cliente..."));
+    err = client_mode_init();
     if (err != ESP_OK)
     {
-        DEBUGING_ESP_LOG(ESP_LOGE(TAG, "ERROR SETTING UP SERVER:  %s", esp_err_to_name(err)));
+        DEBUGING_ESP_LOG(ESP_LOGE(TAG, "ERROR - CONNECTING TO CLIENT: %s", esp_err_to_name(err)));
         return ESP_FAIL;
     }
-    DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Server Service Iniciado!"));
+    DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Conexión establecida!"));
 
-    DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Esperando conexión del cliente..."));
-    err = wait_for_client_connection();
-    if (err != ESP_OK)
-    {
-        DEBUGING_ESP_LOG(ESP_LOGE(TAG, "ERROR - WAITING FOR CLIENT: %s", esp_err_to_name(err)));
-        return ESP_FAIL;
-    }
-    DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Cliente Conectado!"));
 
     DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Iniciando MQTT Service..."));
     err = mqtt_start();

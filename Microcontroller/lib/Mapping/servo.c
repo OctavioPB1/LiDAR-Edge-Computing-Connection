@@ -293,7 +293,7 @@ static esp_err_t servo_set_speed_ISR(uint32_t duty)
         return ESP_FAIL;
     }
     // SE PUEDE QUITAR AL MODIFICAR LA RUTINA DE INICIO.
-    if (xSemaphoreTakeFromISR(current_duty_semaphore, portMAX_DELAY) == pdTRUE)
+    if (xSemaphoreTakeFromISR(current_duty_semaphore, NULL) == pdTRUE)
     {
         current_duty = duty;
         xSemaphoreGive(current_duty_semaphore);

@@ -27,7 +27,7 @@
  * @param[in] TAG   Identifier tag for the log message.
  * @param[in] fmt   Formatted log message string.
  */
-void LOG_MESSAGE(int level, char *TAG, char *fmt) {
+void LOG_MESSAGE(int level, const char *TAG, char *fmt) {
 
     esp_err_t err = ESP_OK;
 

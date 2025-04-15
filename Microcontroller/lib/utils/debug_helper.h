@@ -43,7 +43,7 @@
  * @param[in] TAG   Tag to identify the source of the log message.
  * @param[in] fmt   Log message format string.
  */
-void LOG_MESSAGE(int level, char *TAG, char *fmt);
+void LOG_MESSAGE(int level, const char *TAG, char *fmt);
 
 // Log level definitions
 #define LOG_ERROR   1

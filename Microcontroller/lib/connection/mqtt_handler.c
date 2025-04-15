@@ -36,7 +36,7 @@
 static const char *TAG = "MQTT_HANDLER"; // Library Tag
 
 // Function Prototypes
-static esp_err_t sendControlMessage(char *, char *, char *);
+static esp_err_t sendControlMessage(const char *, char *, const char *);
 
 /**
  * @brief Get the Instruction Message
@@ -48,7 +48,7 @@ static esp_err_t sendControlMessage(char *, char *, char *);
  *      - ESP_OK on success
  *      - ESP_FAIL on fail
  */
-esp_err_t getInstruccionMessage(char *msg)
+esp_err_t getInstructionMessage(char *msg)
 {
 
     return getInstruction(msg);
@@ -88,7 +88,7 @@ esp_err_t getInstruccionMessage(char *msg)
  *          strings to avoid undefined behavior.
  *
  */
-static esp_err_t sendControlMessage(char *ESP_TAG, char *msg_type, char *msg)
+static esp_err_t sendControlMessage(const char *ESP_TAG, char *msg_type, const char *msg)
 {
     const char *values[3];
     char TAG_buffer[20], type_buffer[8], msg_buffer[50];
@@ -144,7 +144,7 @@ static esp_err_t sendControlMessage(char *ESP_TAG, char *msg_type, char *msg)
  *
  * @see sendControlMessage
  */
-esp_err_t sendInfoMesage( char *TAG,  char *msg)
+esp_err_t sendInfoMessage(const char *TAG, const char *msg)
 {
     return sendControlMessage(TAG, "INFO", msg);
 }
@@ -166,7 +166,7 @@ esp_err_t sendInfoMesage( char *TAG,  char *msg)
  * @see sendControlMessage
  */
 
-esp_err_t sendWarningMesage( char *TAG,  char *msg)
+esp_err_t sendWarningMessage(const char *TAG, const char *msg)
 {
     return sendControlMessage(TAG, "WARNING", msg);
 }
@@ -188,7 +188,7 @@ esp_err_t sendWarningMesage( char *TAG,  char *msg)
  * @see sendControlMessage
  */
 
-esp_err_t sendErrorMesage( char *TAG,  char *msg)
+esp_err_t sendErrorMessage( const char *TAG, const char *msg)
 {
     return sendControlMessage(TAG, "ERROR", msg);
 }
