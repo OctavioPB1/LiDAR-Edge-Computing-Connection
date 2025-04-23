@@ -82,6 +82,7 @@ esp_err_t system_init()
     {
         DEBUGING_ESP_LOG(ESP_LOGW(TAG, "Error Setting Up Lights: %s", esp_err_to_name(err)));
         LOG_MESSAGE_W(TAG, "Error Setting Up Lights");
+        return ESP_FAIL;
     }
     DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Luces Service Iniciado!"));
     LOG_MESSAGE_I(TAG, "Luces Service Iniciado!");
