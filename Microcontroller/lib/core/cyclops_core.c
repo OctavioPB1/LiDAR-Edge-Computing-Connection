@@ -50,6 +50,9 @@ static void batteryTask(void *parameter);
 static void checkRAM(void *);
 
 
+#define WIFI_MODE 0 // 0 -> Client Mode, 1 -> WiFi Mode
+
+
 /**
  * @brief Initializes the Cyclops system.
  * 
@@ -87,44 +90,53 @@ esp_err_t system_init()
     DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Luces Service Iniciado!"));
     LOG_MESSAGE_I(TAG, "Luces Service Iniciado!");
 
-    /* Idealmente quisiera que sea en una macro */
+    #if WIFI_MODE
+        DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Iniciando Server Service..."));
+        LOG_MESSAGE_I(TAG, "Iniciando Server Service...");
+        err = initialize_server();
+        if (err != ESP_OK)
+        {
+            DEBUGING_ESP_LOG(ESP_LOGW(TAG, "ERROR SETTING UP SERVER:  %s", esp_err_to_name(err)));
+            return ESP_FAIL;
+        }
+        DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Server Service Iniciado!"));
+        LOG_MESSAGE_I(TAG, "Iniciando Server Iniciado!");
 
-    // DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Iniciando Server Service..."));
-    // err = initialize_server();
-    // if (err != ESP_OK)
-    // {
-    //     DEBUGING_ESP_LOG(ESP_LOGE(TAG, "ERROR SETTING UP SERVER:  %s", esp_err_to_name(err)));
-    //     return ESP_FAIL;
-    // }
-    // DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Server Service Iniciado!"));
-
-    // DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Esperando conexión del cliente..."));
-    // err = wait_for_client_connection();
-    // if (err != ESP_OK)
-    // {
-    //     DEBUGING_ESP_LOG(ESP_LOGE(TAG, "ERROR - WAITING FOR CLIENT: %s", esp_err_to_name(err)));
-    //     return ESP_FAIL;
-    // }
-    // DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Cliente Conectado!"));
-
-    DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Conectandose al cliente..."));
-    err = client_mode_init();
-    if (err != ESP_OK)
-    {
-        DEBUGING_ESP_LOG(ESP_LOGE(TAG, "ERROR - CONNECTING TO CLIENT: %s", esp_err_to_name(err)));
-        return ESP_FAIL;
-    }
-    DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Conexión establecida!"));
-
+        DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Esperando conexión del cliente..."));
+        LOG_MESSAGE_I(TAG, "Esperando conexión del cliente...");
+        err = wait_for_client_connection();
+        if (err != ESP_OK)
+        {
+            DEBUGING_ESP_LOG(ESP_LOGW(TAG, "ERROR - WAITING FOR CLIENT: %s", esp_err_to_name(err)));
+            return ESP_FAIL;
+        }
+        DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Cliente Conectado!"));
+        LOG_MESSAGE_I(TAG, "Cliente Conectado!");
+    #else
+        DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Conectandose al cliente..."));
+        LOG_MESSAGE_I(TAG, "Conectandose al cliente...");
+        err = client_mode_init();
+        if (err != ESP_OK)
+        {
+            DEBUGING_ESP_LOG(ESP_LOGW(TAG, "ERROR - CONNECTING TO CLIENT: %s", esp_err_to_name(err)));
+            LOG_MESSAGE_W(TAG, "ERROR - CONNECTING TO CLIENT: %s");
+            return ESP_FAIL;
+        }
+        DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Conexión establecida!"));
+        LOG_MESSAGE_I(TAG, "Conexión establecida!");
+    #endif
 
     DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Iniciando MQTT Service..."));
+    LOG_MESSAGE_I(TAG, "Iniciando MQTT Service...");
     err = mqtt_start();
     if (err != ESP_OK)
     {
         DEBUGING_ESP_LOG(ESP_LOGE(TAG, "ERROR SETTING UP MQTT SERVER: %s", esp_err_to_name(err)));
+        LOG_MESSAGE_W(TAG, "ERROR SETTING UP MQTT SERVER: %s");
         return ESP_FAIL;
     }
     DEBUGING_ESP_LOG(ESP_LOGI(TAG, "MQTT Service Iniciado!"));
+    LOG_MESSAGE_I(TAG, "MQTT Service Iniciado!");
 
     
     DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Iniciando Motores..."));
@@ -138,8 +150,9 @@ esp_err_t system_init()
     err = mapping_init();
     if (err != ESP_OK)
     {
-        DEBUGING_ESP_LOG(ESP_LOGE(TAG, "ERROR SETTING UP MAPPING"));
+        DEBUGING_ESP_LOG(ESP_LOGE(TAG, "ERROR SETTING UP MAPPING: %s", esp_err_to_name(err)));
         LOG_MESSAGE_E(TAG, "ERROR SETTING UP MAPPING");
+        return ESP_FAIL;
     }
     DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Mapping Service Iniciado!"));
     LOG_MESSAGE_I(TAG,"Mapping Service Iniciado!");
@@ -149,8 +162,9 @@ esp_err_t system_init()
     err = battery_sensor_init();
     if (err != ESP_OK)
     {
-        DEBUGING_ESP_LOG(ESP_LOGE(TAG, "ERROR SETTING UP BATTERY SENSOR"));
+        DEBUGING_ESP_LOG(ESP_LOGE(TAG, "ERROR SETTING UP BATTERY SENSOR: %s", esp_err_to_name(err)));
         LOG_MESSAGE_E(TAG, "ERROR SETTING UP BATTERY SENSOR");
+        return ESP_FAIL;
     }
     DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Battery Service Iniciado!"));
     LOG_MESSAGE_I(TAG, "Battery Service Iniciado!");

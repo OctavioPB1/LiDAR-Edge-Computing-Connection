@@ -6,6 +6,7 @@
 #include "esp_netif.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "debug_helper.h"
 
 #define WIFI_SSID "wifilora"
 #define WIFI_PASS "12345678"
@@ -20,20 +21,23 @@ esp_err_t client_mode_init() {
         ESP_ERROR_CHECK(nvs_flash_erase());
         err = nvs_flash_init();
         if (err != ESP_OK){
-            ESP_LOGE(TAG, "Error initializing NVS: %s", esp_err_to_name(err));
+            DEBUGING_ESP_LOG(ESP_LOGW(TAG, "Error initializing NVS: %s", esp_err_to_name(err)));
+            LOG_MESSAGE_W(TAG, "Error initializing NVS");
             return err;
         }
     }
 
     err = esp_netif_init();
     if(err != ESP_OK){
-        ESP_LOGE(TAG, "Error initializing NETIF: %s", esp_err_to_name(err));
+        DEBUGING_ESP_LOG(ESP_LOGW(TAG, "Error initializing NETIF: %s", esp_err_to_name(err)));
+        LOG_MESSAGE_W(TAG, "Error initializing NETIF");
         return err;
     }
 
     err = esp_event_loop_create_default();
     if(err != ESP_OK){
-        ESP_LOGE(TAG, "Error initializing Event LOOP: %s", esp_err_to_name(err));
+        DEBUGING_ESP_LOG(ESP_LOGW(TAG, "Error initializing Event LOOP: %s", esp_err_to_name(err)));
+        LOG_MESSAGE_W(TAG, "Error initializing Event LOOP");
         return err;
     }
     esp_netif_create_default_wifi_sta(); // crea interfaz por defecto (usa DHCP)
@@ -41,7 +45,8 @@ esp_err_t client_mode_init() {
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     err = esp_wifi_init(&cfg);
     if(err != ESP_OK){
-        ESP_LOGE(TAG, "Error allocating WiFi resources: %s", esp_err_to_name(err));
+        DEBUGING_ESP_LOG(ESP_LOGW(TAG, "Error allocating WiFi resources: %s", esp_err_to_name(err)));
+        LOG_MESSAGE_W(TAG, "Error allocating WiFi resources");
         return err;
     }
 
@@ -55,45 +60,34 @@ esp_err_t client_mode_init() {
 
     err = esp_wifi_set_mode(WIFI_MODE_STA);
     if(err != ESP_OK){
-        ESP_LOGE(TAG, "Error setting station mode: %s", esp_err_to_name(err));
+        DEBUGING_ESP_LOG(ESP_LOGW(TAG, "Error setting station mode: %s", esp_err_to_name(err)));
+        LOG_MESSAGE_W(TAG, "Error setting station mode");
         return err;
     }
 
     err = esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
     if(err != ESP_OK){
-        ESP_LOGE(TAG, "Error setting the configuration: %s", esp_err_to_name(err));
+        DEBUGING_ESP_LOG(ESP_LOGW(TAG, "Error setting the configuration: %s", esp_err_to_name(err)));
+        LOG_MESSAGE_W(TAG, "Error setting station mode");
         return err;
     }
 
     err = esp_wifi_start();
     if(err != ESP_OK){
-        ESP_LOGE(TAG, "Error starting WiFi: %s", esp_err_to_name(err));
+        DEBUGING_ESP_LOG(ESP_LOGW(TAG, "Error starting WiFi: %s", esp_err_to_name(err)));
+        LOG_MESSAGE_W(TAG, "Error setting station mode");
         return err;
     }
 
     ESP_LOGI(TAG, "Conectando a WiFi...");
     err = esp_wifi_connect();
     if(err != ESP_OK){
-        ESP_LOGE(TAG, "Error initiating connection: %s", esp_err_to_name(err));
+        DEBUGING_ESP_LOG(ESP_LOGW(TAG, "Error initiating connection: %s", esp_err_to_name(err)));
+        LOG_MESSAGE_W(TAG, "Error setting station mode");
         return err;
     }
 
     ESP_LOGI(TAG, "Esperando conexión WiFi...");
-
-    // // Esperar activamente a que se conecte
-    // wifi_ap_record_t ap_info;
-    // int retries = 0;
-    // while (err != ESP_OK && retries < 5) {
-    //     ESP_LOGI(TAG, "Intentando conectarse... [%d]", retries);
-    //     err = esp_wifi_sta_get_ap_info(&ap_info);
-    //     vTaskDelay(2000 / portTICK_PERIOD_MS);
-    //     retries++;
-    // }
-
-    // if (retries == 5) {
-    //     ESP_LOGE(TAG, "Error: Tiempo de espera agotado para conectar a WiFi.");
-    //     return ESP_FAIL;
-    // }
 
     esp_netif_ip_info_t ip_info;
     int retries = 0;
@@ -104,10 +98,11 @@ esp_err_t client_mode_init() {
     } while ((ip_info.ip.addr == 0) && (retries < 20));
 
     if (ip_info.ip.addr == 0) {
-        ESP_LOGE(TAG, "No se obtuvo IP luego del timeout.");
+        DEBUGING_ESP_LOG(ESP_LOGW(TAG, "No se obtuvo IP luego del timeout"));
+        LOG_MESSAGE_W(TAG, "No se obtuvo IP luego del timeout");
         return ESP_FAIL;
     }
-    ESP_LOGI(TAG, "IP obtenida: " IPSTR, IP2STR(&ip_info.ip));
+    DEBUGING_ESP_LOG(ESP_LOGI(TAG, "IP obtenida: " IPSTR, IP2STR(&ip_info.ip)));
 
     return check_assigned_ip();
 }
@@ -116,9 +111,11 @@ esp_err_t check_assigned_ip(){
     esp_netif_ip_info_t ip_info;
     esp_err_t err = esp_netif_get_ip_info(esp_netif_get_handle_from_ifkey("WIFI_STA_DEF"), &ip_info);
     if(err != ESP_OK){
-        ESP_LOGE(TAG, "Error getting IP: %s", esp_err_to_name(err));
+        DEBUGING_ESP_LOG(ESP_LOGW(TAG, "Error getting IP: %s", esp_err_to_name(err)));
+        LOG_MESSAGE_W(TAG, "Error getting IP");
         return err;
     }
-    ESP_LOGI(TAG, "IP asignada por DHCP: " IPSTR, IP2STR(&ip_info.ip));
+    DEBUGING_ESP_LOG(ESP_LOGI(TAG, "IP asignada por DHCP: " IPSTR, IP2STR(&ip_info.ip)));
+
     return ESP_OK;
 }
