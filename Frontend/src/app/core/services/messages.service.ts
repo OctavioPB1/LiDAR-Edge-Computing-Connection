@@ -6,7 +6,7 @@ import { Observable, catchError, throwError, of } from 'rxjs';
   providedIn: 'root',
 })
 export class MessagesService {
-  private apiUri = 'http://localhost:8080/message';
+  private apiUri = 'http://localhost:1880/message';
   constructor(private http: HttpClient) {}
 
   /**

@@ -8,8 +8,11 @@
 #include "freertos/task.h"
 #include "debug_helper.h"
 
-#define WIFI_SSID "wifilora"
-#define WIFI_PASS "12345678"
+// #define WIFI_SSID "wifilora"
+// #define WIFI_PASS "12345678"
+
+#define WIFI_SSID "DiegoDebo"
+#define WIFI_PASS "deboradiego"
 
 static const char *TAG = "client mode";
 

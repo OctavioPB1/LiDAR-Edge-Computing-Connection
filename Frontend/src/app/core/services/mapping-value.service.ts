@@ -12,7 +12,7 @@ import { Observable, catchError, throwError, of, tap } from 'rxjs';
 export class MappingValueService {
 
   //private apiUri = 'http://192.168.4.2:8080/mappingValue';
-  private apiUri = 'http://localhost:8080/mappingValue';
+  private apiUri = 'http://localhost:1880/mappingValue';
   constructor(private http: HttpClient) {}
 
   /**

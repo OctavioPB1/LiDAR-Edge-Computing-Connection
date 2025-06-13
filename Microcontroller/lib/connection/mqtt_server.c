@@ -29,7 +29,8 @@
 #define NUM_TOPICS 5 ///< Number of topics to subscribe to
 
 static const char *TAG = "MQTT_SERVER";                                          ///< Log tag for MQTT Server
-static const char *URL = "mqtt://192.168.1.105:1883";                              ///< MQTT broker URL
+//static const char *URL = "mqtt://192.168.1.105:1883";                              ///< MQTT broker URL
+static const char *URL = "mqtt://192.168.1.100:1883";  ///< IP del Nodo Edge     ///< MQTT broker URL   
 static esp_mqtt_client_handle_t mqtt_client = NULL;                              ///< Handle for MQTT client
 static const char *TOPICS[] = {"Instruction", "Messages", "Mapping", "Battery", "Barrier"}; ///< Topics to subscribe to
 static char inst[40] = {0};                                                      ///< Buffer for instructions
