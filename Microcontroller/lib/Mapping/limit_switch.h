@@ -14,7 +14,7 @@
 #define _LIMIT_SWITCH_H_
 
 #include <driver/gpio.h>
-#include "servo.h"
+#include "servo_compatibility.h"
 
 /** 
  * @brief GPIO pin used for the limit switch.

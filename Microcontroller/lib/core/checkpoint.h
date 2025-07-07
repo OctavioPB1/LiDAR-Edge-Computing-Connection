@@ -24,7 +24,7 @@
 #include "instruction_buffer.h"
 #include "i2c.h"
 #include "limit_switch.h"
-#include "servo.h"
+#include "servo_compatibility.h"
 
 /**
  * @brief Sets a checkpoint for execution rollback.
