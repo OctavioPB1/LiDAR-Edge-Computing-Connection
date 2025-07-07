@@ -1,10 +1,9 @@
 /**
- * @file servo_compatibility.c
- * @brief Compatibility layer implementation for existing servo API
+ * @file servo_compatibility_simple.c
+ * @brief Simple compatibility layer implementation
  * 
- * This file implements the existing servo API using the new generic servo library
- * internally. This provides backward compatibility while leveraging the improved
- * functionality of the generic library.
+ * This file implements a simple compatibility layer that avoids conflicts
+ * with the original servo library by using different function names.
  * 
  * @version 1.0
  * @date 2025-01-27
@@ -12,12 +11,13 @@
  */
 
 #include "servo_compatibility.h"
+#include "Generic_servo/servo_generic.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include <string.h>
 
-static const char *TAG = "SERVO_COMPAT";
+static const char *TAG = "SERVO_SIMPLE";
 
 // Global servo handle for the generic library
 static servo_handle_t *g_servo_handle = NULL;
@@ -30,7 +30,7 @@ static uint32_t g_last_speed = SERVO_STOP;
 static servo_direction_t g_last_direction = SERVO_DIR_STOP;
 static bool g_direction_inverted = false;
 
-// Semaphores for thread safety (maintained for compatibility)
+// Semaphores for thread safety
 static SemaphoreHandle_t g_servo_semaphore = NULL;
 
 // Speed mapping for the old API
@@ -47,29 +47,6 @@ static const struct {
     {SERVO_MEDIUM_SPEED_CCW,  50,  SERVO_DIR_CCW},
     {SERVO_MAX_SPEED_CCW,    100,  SERVO_DIR_CCW}
 };
-
-static esp_err_t create_compatibility_config(servo_config_t *config)
-{
-    if (!config) {
-        return ESP_ERR_INVALID_ARG;
-    }
-
-    // Create configuration that matches the old servo behavior
-    *config = (servo_config_t) {
-        .pin = GPIO_NUM_14,                    // Same GPIO as original
-        .type = SERVO_TYPE_CONTINUOUS,         // Continuous rotation like original
-        .min_pulse_us = 900,                   // Original min pulse
-        .max_pulse_us = 2100,                  // Original max pulse
-        .center_pulse_us = 1500,               // Original stop pulse
-        .frequency_hz = 50,                    // Standard 50Hz
-        .min_angle = 0,                        // Not used for continuous
-        .max_angle = 0,                        // Not used for continuous
-        .speed = 50,                           // Default medium speed
-        .invert_direction = false              // Will be set by servo_invert()
-    };
-
-    return ESP_OK;
-}
 
 static uint8_t pulse_to_speed(uint32_t pulse_us)
 {
@@ -91,7 +68,7 @@ static servo_direction_t pulse_to_direction(uint32_t pulse_us)
     return SERVO_DIR_STOP;
 }
 
-esp_err_t servo_initialize(void)
+esp_err_t servo_simple_initialize(void)
 {
     if (g_is_initialized) {
         ESP_LOGW(TAG, "Servo already initialized");
@@ -106,17 +83,8 @@ esp_err_t servo_initialize(void)
     }
     xSemaphoreGive(g_servo_semaphore);
 
-    // Create configuration for the generic library
-    servo_config_t config;
-    esp_err_t ret = create_compatibility_config(&config);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to create configuration");
-        vSemaphoreDelete(g_servo_semaphore);
-        return ret;
-    }
-
-    // Initialize the generic servo library
-    ret = servo_generic_init(&config, &g_servo_handle);
+    // Use the predefined continuous servo configuration
+    esp_err_t ret = servo_generic_init(&SERVO_CONFIG_CONTINUOUS_STANDARD, &g_servo_handle);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize generic servo: %s", esp_err_to_name(ret));
         vSemaphoreDelete(g_servo_semaphore);
@@ -129,11 +97,11 @@ esp_err_t servo_initialize(void)
     g_last_speed = SERVO_STOP;
     g_last_direction = SERVO_DIR_STOP;
 
-    ESP_LOGI(TAG, "Servo compatibility layer initialized successfully");
+    ESP_LOGI(TAG, "Servo simple compatibility layer initialized successfully");
     return ESP_OK;
 }
 
-esp_err_t servo_start(void)
+esp_err_t servo_simple_start(void)
 {
     if (!g_is_initialized || !g_servo_handle) {
         ESP_LOGE(TAG, "Servo not initialized");
@@ -175,7 +143,7 @@ esp_err_t servo_start(void)
     return ret;
 }
 
-esp_err_t servo_stop(void)
+esp_err_t servo_simple_stop(void)
 {
     if (!g_is_initialized || !g_servo_handle) {
         ESP_LOGE(TAG, "Servo not initialized");
@@ -197,7 +165,7 @@ esp_err_t servo_stop(void)
     return ret;
 }
 
-esp_err_t servo_pause(void)
+esp_err_t servo_simple_pause(void)
 {
     if (!g_is_initialized || !g_servo_handle) {
         ESP_LOGE(TAG, "Servo not initialized");
@@ -218,7 +186,7 @@ esp_err_t servo_pause(void)
     return ret;
 }
 
-esp_err_t servo_restart(void)
+esp_err_t servo_simple_restart(void)
 {
     if (!g_is_initialized || !g_servo_handle) {
         ESP_LOGE(TAG, "Servo not initialized");
@@ -245,16 +213,14 @@ esp_err_t servo_restart(void)
     return ret;
 }
 
-int16_t readAngle(void)
+int16_t readAngle_simple(void)
 {
     // For continuous rotation servos, we can't read the actual angle
-    // This is a limitation of the hardware, not the library
-    // Return -1 to indicate this is not available
     ESP_LOGW(TAG, "Angle reading not available for continuous rotation servos");
     return -1;
 }
 
-void servo_set_speed(SERVO_DIRECTION direction)
+void servo_simple_set_speed(SERVO_DIRECTION_SIMPLE direction)
 {
     if (!g_is_initialized || !g_servo_handle) {
         ESP_LOGE(TAG, "Servo not initialized");
@@ -267,13 +233,12 @@ void servo_set_speed(SERVO_DIRECTION direction)
 
     // Determine current speed level and direction
     uint32_t current_pulse = servo_generic_get_pulse(g_servo_handle);
-    uint8_t current_speed = pulse_to_speed(current_pulse);
     servo_direction_t current_direction = pulse_to_direction(current_pulse);
 
     // Calculate new speed based on direction
     uint32_t new_pulse = current_pulse;
     
-    if (direction == UP) {
+    if (direction == SERVO_UP_SIMPLE) {
         // Increase speed
         if (current_direction == SERVO_DIR_CW) {
             if (current_pulse == SERVO_LOW_SPEED_CW) {
@@ -288,7 +253,7 @@ void servo_set_speed(SERVO_DIRECTION direction)
                 new_pulse = SERVO_MAX_SPEED_CCW;
             }
         }
-    } else if (direction == DOWN) {
+    } else if (direction == SERVO_DOWN_SIMPLE) {
         // Decrease speed
         if (current_direction == SERVO_DIR_CW) {
             if (current_pulse == SERVO_MAX_SPEED_CW) {
@@ -322,7 +287,7 @@ void servo_set_speed(SERVO_DIRECTION direction)
     xSemaphoreGive(g_servo_semaphore);
 }
 
-void servo_invert(void)
+void servo_simple_invert(void)
 {
     if (!g_is_initialized || !g_servo_handle) {
         ESP_LOGE(TAG, "Servo not initialized");
@@ -351,7 +316,7 @@ void servo_invert(void)
     xSemaphoreGive(g_servo_semaphore);
 }
 
-esp_err_t delete_servo_semaphores(void)
+esp_err_t delete_servo_simple_semaphores(void)
 {
     if (g_servo_semaphore) {
         vSemaphoreDelete(g_servo_semaphore);
@@ -369,15 +334,3 @@ esp_err_t delete_servo_semaphores(void)
 
     return ESP_OK;
 }
-
-// Additional helper functions for migration
-esp_err_t servo_migrate_to_generic(void)
-{
-    ESP_LOGI(TAG, "Migration to generic servo library completed");
-    return ESP_OK;
-}
-
-servo_handle_t* servo_get_generic_handle(void)
-{
-    return g_servo_handle;
-} 

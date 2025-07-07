@@ -424,11 +424,11 @@ static void executeInstruction(char *inst)
     }
     else if (strncmp(inst, "SpeedUp", 7) == 0)
     {
-        servo_set_speed(UP);
+        servo_set_speed(SERVO_UP_SIMPLE);
     }
     else if (strncmp(inst, "SpeedDown", 9) == 0)
     {
-        servo_set_speed(DOWN);
+        servo_set_speed(SERVO_DOWN_SIMPLE);
     }
     else if (strncmp(inst, "Pause", 5) == 0)
     {

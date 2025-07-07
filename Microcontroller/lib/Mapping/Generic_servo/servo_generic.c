@@ -17,6 +17,7 @@
 #include "freertos/task.h"
 #include <string.h>
 #include <math.h>
+#include <inttypes.h>
 
 static const char *TAG = "SERVO_GENERIC";
 
@@ -361,7 +362,7 @@ esp_err_t servo_generic_set_pulse(servo_handle_t *handle, uint32_t pulse_width)
     }
 
     if (pulse_width < handle->config.min_pulse_us || pulse_width > handle->config.max_pulse_us) {
-        ESP_LOGE(TAG, "Pulse width %d out of range [%d, %d]", 
+                ESP_LOGE(TAG, "Pulse width %" PRIu32 " out of range [%" PRIu32 ", %" PRIu32 "]",
                  pulse_width, handle->config.min_pulse_us, handle->config.max_pulse_us);
         return ESP_ERR_INVALID_ARG;
     }
