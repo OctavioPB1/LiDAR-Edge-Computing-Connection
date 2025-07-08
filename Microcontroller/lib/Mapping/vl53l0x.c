@@ -1,4 +1,3 @@
-
 /**
  * @file vl53l0x.c
  * @brief Implementation of the VL53L0X Time-of-Flight ranging sensor control library for ESP32
@@ -23,6 +22,9 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "debug_helper.h"
+#include "esp_timer.h"
+#include "driver/gpio.h"
+#include "freertos/queue.h"
 
 
 #define REG_IDENTIFICATION_MODEL_ID (0xC0)
@@ -789,5 +791,502 @@ esp_err_t vl53l0x_reset() {
         ESP_LOGE(TAG, "VL53L0X no se inició correctamente después del reinicio");
         LOG_MESSAGE_E(TAG,"VL53L0X no se inició correctamente después del reinicio");
         return ESP_FAIL;
+    }
+}
+
+// ============================================================================
+// ENHANCED VL53L0X FUNCTIONS FOR MAPPING APPLICATIONS
+// ============================================================================
+
+// Additional registers for enhanced functionality
+#define REG_MSRC_CONFIG_TIMEOUT_MACROP (0x46)
+#define REG_PRE_RANGE_CONFIG_TIMEOUT_MACROP_HI (0x51)
+#define REG_PRE_RANGE_CONFIG_TIMEOUT_MACROP_LO (0x52)
+#define REG_FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI (0x71)
+#define REG_FINAL_RANGE_CONFIG_TIMEOUT_MACROP_LO (0x72)
+#define REG_FINAL_RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT (0x44)
+#define REG_PRE_RANGE_CONFIG_SIGMA_THRESH_HI (0x61)
+#define REG_PRE_RANGE_CONFIG_SIGMA_THRESH_LO (0x62)
+#define REG_FINAL_RANGE_CONFIG_SIGMA_THRESH_HI (0x67)
+#define REG_FINAL_RANGE_CONFIG_SIGMA_THRESH_LO (0x68)
+#define REG_CROSSTALK_COMPENSATION_PEAK_RATE_MCPS (0x20)
+#define REG_MSRC_CONFIG_CONTROL (0x60)
+#define REG_PRE_RANGE_CONFIG_MIN_SNR (0x27)
+#define REG_SYSTEM_INTERMEASUREMENT_PERIOD (0x04)
+
+// Global variables for enhanced functionality
+static struct {
+    vl53l0x_mode_t mode;
+    uint32_t timing_budget_us;
+    uint32_t inter_measurement_period_ms;
+    vl53l0x_data_ready_cb_t callback;
+    gpio_num_t interrupt_gpio;
+    bool interrupt_enabled;
+    uint32_t measurement_count;
+    uint32_t error_count;
+} vl53l0x_state[3] = {0}; // Support up to 3 sensors
+
+// Timing budget conversion factors
+static const struct {
+    uint8_t enables;
+    uint8_t timeouts;
+    uint16_t start_overhead;
+    uint16_t end_overhead;
+} timing_sequences[] = {
+    [0] = {RANGE_SEQUENCE_STEP_DSS + RANGE_SEQUENCE_STEP_PRE_RANGE + RANGE_SEQUENCE_STEP_FINAL_RANGE, 0, 320, 960},
+    [1] = {RANGE_SEQUENCE_STEP_TCC + RANGE_SEQUENCE_STEP_DSS + RANGE_SEQUENCE_STEP_PRE_RANGE + RANGE_SEQUENCE_STEP_FINAL_RANGE, 0, 320, 960},
+    [2] = {RANGE_SEQUENCE_STEP_TCC + RANGE_SEQUENCE_STEP_MSRC + RANGE_SEQUENCE_STEP_DSS + RANGE_SEQUENCE_STEP_PRE_RANGE + RANGE_SEQUENCE_STEP_FINAL_RANGE, 0, 320, 960}
+};
+
+// Internal helper functions
+static bool get_sequence_step_enables(uint8_t *enables);
+static bool get_sequence_step_timeouts(uint8_t *timeouts);
+static uint32_t get_measurement_timing_budget(vl53l0x_idx_t idx);
+static bool set_measurement_timing_budget(vl53l0x_idx_t idx, uint32_t budget_us);
+static uint16_t encode_timeout(uint32_t timeout_mclks);
+static uint32_t decode_timeout(uint16_t encoded_timeout);
+static uint32_t timeout_mclks_to_us(uint16_t timeout_mclks, uint8_t vcsel_period);
+static uint16_t timeout_us_to_mclks(uint32_t timeout_us, uint8_t vcsel_period);
+static uint8_t get_vcsel_pulse_period(uint8_t vcsel_period_type);
+static bool set_vcsel_pulse_period(uint8_t vcsel_period_type, uint8_t period_pclks);
+static void IRAM_ATTR vl53l0x_isr_handler(void* arg);
+
+/**
+ * @brief Configures the timing budget for measurements
+ */
+esp_err_t vl53l0x_set_timing_budget(vl53l0x_idx_t idx, vl53l0x_timing_budget_t budget_us)
+{
+    if (idx >= (sizeof(vl53l0x_state) / sizeof(vl53l0x_state[0]))) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (budget_us < 15000 || budget_us > 100000) {
+        ESP_LOGE(TAG, "Invalid timing budget: %lu us", budget_us);
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (!set_measurement_timing_budget(idx, budget_us)) {
+        ESP_LOGE(TAG, "Failed to set timing budget");
+        return ESP_FAIL;
+    }
+
+    vl53l0x_state[idx].timing_budget_us = budget_us;
+    ESP_LOGI(TAG, "Timing budget set to %lu us", budget_us);
+    return ESP_OK;
+}
+
+/**
+ * @brief Starts continuous ranging mode
+ */
+esp_err_t vl53l0x_start_continuous(vl53l0x_idx_t idx, uint32_t inter_measurement_period_ms)
+{
+    if (idx >= (sizeof(vl53l0x_state) / sizeof(vl53l0x_state[0]))) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    // Ensure inter-measurement period is at least as long as the timing budget
+    uint32_t min_period_ms = (vl53l0x_state[idx].timing_budget_us + 5000) / 1000; // Add 5ms margin
+    if (inter_measurement_period_ms < min_period_ms) {
+        inter_measurement_period_ms = min_period_ms;
+        ESP_LOGW(TAG, "Inter-measurement period adjusted to %lu ms", inter_measurement_period_ms);
+    }
+
+    // Set inter-measurement period
+    if (!i2c_write_addr8_data16(REG_SYSTEM_INTERMEASUREMENT_PERIOD, inter_measurement_period_ms)) {
+        ESP_LOGE(TAG, "Failed to set inter-measurement period");
+        return ESP_FAIL;
+    }
+
+    // Start continuous mode
+    if (!i2c_write_addr8_data8(REG_SYSRANGE_START, 0x02)) {
+        ESP_LOGE(TAG, "Failed to start continuous mode");
+        return ESP_FAIL;
+    }
+
+    vl53l0x_state[idx].mode = VL53L0X_MODE_CONTINUOUS;
+    vl53l0x_state[idx].inter_measurement_period_ms = inter_measurement_period_ms;
+    vl53l0x_state[idx].measurement_count = 0;
+    vl53l0x_state[idx].error_count = 0;
+
+    ESP_LOGI(TAG, "Continuous mode started with %lu ms period", inter_measurement_period_ms);
+    return ESP_OK;
+}
+
+/**
+ * @brief Stops continuous ranging mode
+ */
+esp_err_t vl53l0x_stop_continuous(vl53l0x_idx_t idx)
+{
+    if (idx >= (sizeof(vl53l0x_state) / sizeof(vl53l0x_state[0]))) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (!i2c_write_addr8_data8(REG_SYSRANGE_START, 0x01)) {
+        ESP_LOGE(TAG, "Failed to stop continuous mode");
+        return ESP_FAIL;
+    }
+
+    vl53l0x_state[idx].mode = VL53L0X_MODE_SINGLE_SHOT;
+    ESP_LOGI(TAG, "Continuous mode stopped");
+    return ESP_OK;
+}
+
+/**
+ * @brief Reads measurement data in continuous mode
+ */
+esp_err_t vl53l0x_read_range_continuous(vl53l0x_idx_t idx, vl53l0x_measurement_t *measurement)
+{
+    if (idx >= (sizeof(vl53l0x_state) / sizeof(vl53l0x_state[0])) || !measurement) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    // Initialize measurement structure
+    memset(measurement, 0, sizeof(vl53l0x_measurement_t));
+    measurement->timestamp_us = esp_timer_get_time();
+
+    // Check if measurement is ready
+    if (!vl53l0x_is_data_ready(idx)) {
+        measurement->valid = false;
+        return ESP_ERR_NOT_FOUND;
+    }
+
+    // Read range status
+    uint8_t range_status = 0;
+    if (!i2c_read_addr8_data8(REG_RESULT_RANGE_STATUS, &range_status)) {
+        ESP_LOGE(TAG, "Failed to read range status");
+        measurement->valid = false;
+        vl53l0x_state[idx].error_count++;
+        return ESP_FAIL;
+    }
+
+    measurement->range_status = range_status & 0x78;
+
+    // Read range data
+    uint16_t range_mm = 0;
+    if (!i2c_read_addr8_data16(REG_RESULT_RANGE_STATUS + 10, &range_mm)) {
+        ESP_LOGE(TAG, "Failed to read range data");
+        measurement->valid = false;
+        vl53l0x_state[idx].error_count++;
+        return ESP_FAIL;
+    }
+
+    // Read signal rate
+    uint16_t signal_rate = 0;
+    if (!i2c_read_addr8_data16(REG_RESULT_RANGE_STATUS + 6, &signal_rate)) {
+        ESP_LOGW(TAG, "Failed to read signal rate");
+        signal_rate = 0;
+    }
+
+    // Read ambient rate
+    uint16_t ambient_rate = 0;
+    if (!i2c_read_addr8_data16(REG_RESULT_RANGE_STATUS + 8, &ambient_rate)) {
+        ESP_LOGW(TAG, "Failed to read ambient rate");
+        ambient_rate = 0;
+    }
+
+    // Clear interrupt
+    if (!i2c_write_addr8_data8(REG_SYSTEM_INTERRUPT_CLEAR, 0x01)) {
+        ESP_LOGW(TAG, "Failed to clear interrupt");
+    }
+
+    // Process range data
+    if (range_mm == 8190 || range_mm == 8191) {
+        measurement->range_mm = VL53L0X_OUT_OF_RANGE;
+    } else {
+        measurement->range_mm = range_mm;
+    }
+
+    measurement->signal_rate = signal_rate;
+    measurement->ambient_rate = ambient_rate;
+    measurement->valid = (measurement->range_status == 0) && (measurement->range_mm != VL53L0X_OUT_OF_RANGE);
+
+    vl53l0x_state[idx].measurement_count++;
+    
+    return ESP_OK;
+}
+
+/**
+ * @brief Checks if new measurement data is available
+ */
+bool vl53l0x_is_data_ready(vl53l0x_idx_t idx)
+{
+    if (idx >= (sizeof(vl53l0x_state) / sizeof(vl53l0x_state[0]))) {
+        return false;
+    }
+
+    uint8_t interrupt_status = 0;
+    if (!i2c_read_addr8_data8(REG_RESULT_INTERRUPT_STATUS, &interrupt_status)) {
+        return false;
+    }
+
+    return (interrupt_status & 0x07) != 0;
+}
+
+/**
+ * @brief Interrupt handler for VL53L0X data ready
+ */
+static void IRAM_ATTR vl53l0x_isr_handler(void* arg)
+{
+    vl53l0x_idx_t idx = (vl53l0x_idx_t)(uintptr_t)arg;
+    
+    if (vl53l0x_state[idx].callback) {
+        vl53l0x_measurement_t measurement;
+        
+        // Quick non-blocking read - full processing in callback
+        measurement.timestamp_us = esp_timer_get_time();
+        measurement.valid = true;
+        
+        // Call user callback from ISR
+        vl53l0x_state[idx].callback(idx, &measurement);
+    }
+}
+
+/**
+ * @brief Installs interrupt handler for data ready events
+ */
+esp_err_t vl53l0x_install_interrupt_handler(vl53l0x_idx_t idx, gpio_num_t gpio_num, vl53l0x_data_ready_cb_t callback)
+{
+    if (idx >= (sizeof(vl53l0x_state) / sizeof(vl53l0x_state[0])) || !callback) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    // Configure GPIO as input with pull-up
+    gpio_config_t io_conf = {
+        .pin_bit_mask = (1ULL << gpio_num),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_NEGEDGE  // VL53L0X interrupt is active low
+    };
+
+    esp_err_t err = gpio_config(&io_conf);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to configure interrupt GPIO");
+        return err;
+    }
+
+    // Install ISR handler
+    err = gpio_install_isr_service(ESP_INTR_FLAG_IRAM);
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+        ESP_LOGE(TAG, "Failed to install ISR service");
+        return err;
+    }
+
+    err = gpio_isr_handler_add(gpio_num, vl53l0x_isr_handler, (void*)(uintptr_t)idx);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to add ISR handler");
+        return err;
+    }
+
+    // Store configuration
+    vl53l0x_state[idx].callback = callback;
+    vl53l0x_state[idx].interrupt_gpio = gpio_num;
+    vl53l0x_state[idx].interrupt_enabled = true;
+
+    ESP_LOGI(TAG, "Interrupt handler installed on GPIO %d", gpio_num);
+    return ESP_OK;
+}
+
+/**
+ * @brief Removes interrupt handler
+ */
+esp_err_t vl53l0x_remove_interrupt_handler(vl53l0x_idx_t idx)
+{
+    if (idx >= (sizeof(vl53l0x_state) / sizeof(vl53l0x_state[0]))) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (vl53l0x_state[idx].interrupt_enabled) {
+        gpio_isr_handler_remove(vl53l0x_state[idx].interrupt_gpio);
+        vl53l0x_state[idx].interrupt_enabled = false;
+        vl53l0x_state[idx].callback = NULL;
+        ESP_LOGI(TAG, "Interrupt handler removed");
+    }
+
+    return ESP_OK;
+}
+
+/**
+ * @brief Configures signal and ambient rate limits
+ */
+esp_err_t vl53l0x_set_signal_rate_limit(vl53l0x_idx_t idx, float signal_rate_limit, float ambient_rate_limit)
+{
+    if (idx >= (sizeof(vl53l0x_state) / sizeof(vl53l0x_state[0]))) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    // Convert signal rate limit to fixed point (9.7 format)
+    uint16_t signal_rate_fixed = (uint16_t)(signal_rate_limit * 128.0f);
+    
+    if (!i2c_write_addr8_data16(REG_FINAL_RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT, signal_rate_fixed)) {
+        ESP_LOGE(TAG, "Failed to set signal rate limit");
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI(TAG, "Signal rate limit set to %.2f MCPS", signal_rate_limit);
+    return ESP_OK;
+}
+
+/**
+ * @brief Gets current measurement rate capability
+ */
+float vl53l0x_get_max_measurement_rate(vl53l0x_idx_t idx)
+{
+    if (idx >= (sizeof(vl53l0x_state) / sizeof(vl53l0x_state[0]))) {
+        return 0.0f;
+    }
+
+    uint32_t timing_budget = vl53l0x_state[idx].timing_budget_us;
+    if (timing_budget == 0) {
+        timing_budget = 30000; // Default 30ms
+    }
+
+    // Maximum rate is limited by timing budget + overhead
+    float max_rate = 1000000.0f / (timing_budget + 5000); // 5ms overhead
+    return max_rate;
+}
+
+// Helper functions implementation
+
+static bool get_sequence_step_enables(uint8_t *enables)
+{
+    return i2c_read_addr8_data8(REG_SYSTEM_SEQUENCE_CONFIG, enables);
+}
+
+static bool get_sequence_step_timeouts(uint8_t *timeouts)
+{
+    // This is a simplified implementation
+    // In a full implementation, you would read multiple registers
+    *timeouts = 0;
+    return true;
+}
+
+static bool set_measurement_timing_budget(vl53l0x_idx_t idx, uint32_t budget_us)
+{
+    uint16_t const StartOverhead = 1320; // microseconds
+    uint16_t const EndOverhead = 960;
+    uint16_t const MsrcOverhead = 660;
+    uint16_t const TccOverhead = 590;
+    uint16_t const DssOverhead = 690;
+    uint16_t const PreRangeOverhead = 660;
+    uint16_t const FinalRangeOverhead = 550;
+
+    uint32_t const MinTimingBudget = 20000; // microseconds
+
+    if (budget_us < MinTimingBudget) {
+        return false;
+    }
+
+    uint32_t used_budget_us = StartOverhead + EndOverhead;
+
+    uint8_t enables = 0;
+    if (!get_sequence_step_enables(&enables)) {
+        return false;
+    }
+
+    if (enables & RANGE_SEQUENCE_STEP_TCC) {
+        used_budget_us += TccOverhead;
+    }
+
+    if (enables & RANGE_SEQUENCE_STEP_DSS) {
+        used_budget_us += DssOverhead;
+    }
+
+    if (enables & RANGE_SEQUENCE_STEP_MSRC) {
+        used_budget_us += MsrcOverhead;
+    }
+
+    if (enables & RANGE_SEQUENCE_STEP_PRE_RANGE) {
+        used_budget_us += PreRangeOverhead;
+    }
+
+    if (enables & RANGE_SEQUENCE_STEP_FINAL_RANGE) {
+        used_budget_us += FinalRangeOverhead;
+
+        if (used_budget_us > budget_us) {
+            return false;
+        }
+
+        uint32_t final_range_budget_us = budget_us - used_budget_us;
+
+        uint8_t vcsel_period = get_vcsel_pulse_period(1); // Final range VCSEL period
+        uint16_t final_range_timeout_mclks = timeout_us_to_mclks(final_range_budget_us, vcsel_period);
+
+        if (final_range_timeout_mclks > 65535) {
+            return false;
+        }
+
+        // Set final range timeout
+        if (!i2c_write_addr8_data16(REG_FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI, 
+                                   encode_timeout(final_range_timeout_mclks))) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static uint16_t encode_timeout(uint32_t timeout_mclks)
+{
+    uint32_t ls_byte = 0;
+    uint16_t ms_byte = 0;
+
+    if (timeout_mclks > 0) {
+        ls_byte = timeout_mclks - 1;
+        while ((ls_byte & 0xFFFFFF00) > 0) {
+            ls_byte >>= 1;
+            ms_byte++;
+        }
+        return (ms_byte << 8) | (ls_byte & 0xFF);
+    }
+    return 0;
+}
+
+static uint32_t decode_timeout(uint16_t encoded_timeout)
+{
+    return (uint32_t)((encoded_timeout & 0xFF) << (encoded_timeout >> 8)) + 1;
+}
+
+static uint32_t timeout_mclks_to_us(uint16_t timeout_mclks, uint8_t vcsel_period)
+{
+    uint32_t macro_period_ns = (((uint32_t)2304 * (vcsel_period) * 1655) + 500) / 1000;
+    return ((timeout_mclks * macro_period_ns) + 500) / 1000;
+}
+
+static uint16_t timeout_us_to_mclks(uint32_t timeout_us, uint8_t vcsel_period)
+{
+    uint32_t macro_period_ns = (((uint32_t)2304 * (vcsel_period) * 1655) + 500) / 1000;
+    return (uint16_t)(((timeout_us * 1000) + (macro_period_ns / 2)) / macro_period_ns);
+}
+
+static uint8_t get_vcsel_pulse_period(uint8_t vcsel_period_type)
+{
+    uint8_t vcsel_period_reg = 0;
+    
+    if (vcsel_period_type == 0) {
+        // Pre-range
+        if (!i2c_read_addr8_data8(REG_PRE_RANGE_CONFIG_SIGMA_THRESH_HI, &vcsel_period_reg)) {
+            return 12; // Default value
+        }
+    } else {
+        // Final range
+        if (!i2c_read_addr8_data8(REG_FINAL_RANGE_CONFIG_SIGMA_THRESH_HI, &vcsel_period_reg)) {
+            return 12; // Default value
+        }
+    }
+    
+    return (vcsel_period_reg + 1) << 1;
+}
+
+static bool set_vcsel_pulse_period(uint8_t vcsel_period_type, uint8_t period_pclks)
+{
+    uint8_t vcsel_period_reg = (period_pclks >> 1) - 1;
+    
+    if (vcsel_period_type == 0) {
+        // Pre-range
+        return i2c_write_addr8_data8(REG_PRE_RANGE_CONFIG_SIGMA_THRESH_HI, vcsel_period_reg);
+    } else {
+        // Final range
+        return i2c_write_addr8_data8(REG_FINAL_RANGE_CONFIG_SIGMA_THRESH_HI, vcsel_period_reg);
     }
 }
