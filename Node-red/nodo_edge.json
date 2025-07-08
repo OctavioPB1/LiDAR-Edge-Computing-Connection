@@ -1,0 +1,1487 @@
+[
+    {
+        "id": "c30771c48096f533",
+        "type": "tab",
+        "label": "Flow 2",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "22639cdf785c1bbe",
+        "type": "http in",
+        "z": "c30771c48096f533",
+        "name": "Set de Comandos",
+        "url": "/set",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 170,
+        "y": 700,
+        "wires": [
+            [
+                "5314dbdf72cf5a79",
+                "df3bd26d952c1c9c"
+            ]
+        ]
+    },
+    {
+        "id": "e25be78b55164fc0",
+        "type": "function",
+        "z": "c30771c48096f533",
+        "name": "(MQTT -> Server) Translation",
+        "func": "var tarea = msg.payload.Task;\nvar id_robot = flow.get('id_robot')||0;\nid_robot++;\nflow.set('id_robot', id_robot);\n\nmsg.payload = [{\n    measurement: \"robotMovements\",\n    fields: {\n        \"Task\": tarea, \n        \"ID_edge\": msg.payload.id_nodoEdge || \"NaN\",\n        \"RobotID\": msg.payload.robotID\n    },\n    tags: {\n        \"ID\": id_robot\n    },\n    'timestamp': new Date().getTime()\n}];\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 400,
+        "y": 1020,
+        "wires": [
+            [
+                "205d2d29f04d772e"
+            ]
+        ]
+    },
+    {
+        "id": "b9359498d026da76",
+        "type": "mqtt in",
+        "z": "c30771c48096f533",
+        "name": "",
+        "topic": "movimientos",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "9eebed49fee1d835",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 150,
+        "y": 1020,
+        "wires": [
+            [
+                "e25be78b55164fc0",
+                "f4399b7ac5733960",
+                "4459021d2909e07c"
+            ]
+        ]
+    },
+    {
+        "id": "5314dbdf72cf5a79",
+        "type": "split",
+        "z": "c30771c48096f533",
+        "name": "Splitter",
+        "splt": "\\n",
+        "spltType": "str",
+        "arraySplt": 1,
+        "arraySpltType": "len",
+        "stream": false,
+        "addname": "",
+        "x": 380,
+        "y": 700,
+        "wires": [
+            [
+                "ba5419d605b18c5b",
+                "f87c17eed17da6ce"
+            ]
+        ]
+    },
+    {
+        "id": "2594178f04aba989",
+        "type": "function",
+        "z": "c30771c48096f533",
+        "name": "(HTTP -> Server) Translation",
+        "func": "var tarea = msg.payload.Task;\nvar id_edge = flow.get('id_edge') || 0; //Si no está inicializada, lo hace\nid_edge++;\n\nmsg.payload = [{\n    measurement: \"nodoedgeMovements\",\n    fields: {\n        \"Task\": tarea,\n        \"Executed\": false,\n        \"RobotID\": 2\n    },\n    tags: {\n        \"ID\": id_edge\n    },\n    //'timestamp': new Date().getTime()\n}];\n\nflow.set('id_edge', id_edge);\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 800,
+        "y": 740,
+        "wires": [
+            [
+                "b07b6e44e39bee7a",
+                "a53a13f4d1da4379",
+                "b1a6ee1d60d9b62a"
+            ]
+        ]
+    },
+    {
+        "id": "4b9c08d30801bc63",
+        "type": "inject",
+        "z": "c30771c48096f533",
+        "name": "ID = 0",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 150,
+        "y": 340,
+        "wires": [
+            [
+                "1aa6992287d304f1",
+                "644d5730a7b3e9d8"
+            ]
+        ]
+    },
+    {
+        "id": "1aa6992287d304f1",
+        "type": "change",
+        "z": "c30771c48096f533",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "id_edge",
+                "pt": "flow",
+                "to": "0",
+                "tot": "num"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 400,
+        "y": 340,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "2930318e69a16776",
+        "type": "inject",
+        "z": "c30771c48096f533",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "id_robot",
+        "payloadType": "flow",
+        "x": 170,
+        "y": 220,
+        "wires": [
+            [
+                "adc8011a2fa15972"
+            ]
+        ]
+    },
+    {
+        "id": "adc8011a2fa15972",
+        "type": "debug",
+        "z": "c30771c48096f533",
+        "name": "debug 9",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 360,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "644d5730a7b3e9d8",
+        "type": "change",
+        "z": "c30771c48096f533",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "id_robot",
+                "pt": "flow",
+                "to": "0",
+                "tot": "num"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 400,
+        "y": 380,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "65e80b609f53b77e",
+        "type": "inject",
+        "z": "c30771c48096f533",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "id_edge",
+        "payloadType": "flow",
+        "x": 170,
+        "y": 260,
+        "wires": [
+            [
+                "adc8011a2fa15972"
+            ]
+        ]
+    },
+    {
+        "id": "f8d4f56c3a6b137b",
+        "type": "influxdb in",
+        "z": "c30771c48096f533",
+        "influxdb": "3653219624a66dd0",
+        "name": "Nodoedge Measurement",
+        "query": "SELECT * FROM \"nodoedgeMovements\"  ORDER BY time DESC",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 370,
+        "y": 120,
+        "wires": [
+            [
+                "ccfdb1cc57c7f06a"
+            ]
+        ]
+    },
+    {
+        "id": "9b19d9d05a1fa446",
+        "type": "inject",
+        "z": "c30771c48096f533",
+        "name": "",
+        "props": [],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 150,
+        "y": 140,
+        "wires": [
+            [
+                "f8d4f56c3a6b137b",
+                "b485d1c8c0889d2b"
+            ]
+        ]
+    },
+    {
+        "id": "ccfdb1cc57c7f06a",
+        "type": "function",
+        "z": "c30771c48096f533",
+        "name": "Get last ID from nodoEdge DB",
+        "func": "(msg.payload[0] != null)\n? flow.set('id_edge', parseInt(msg.payload[0].ID))\n: flow.set('id_edge', parseInt(0));\nreturn msg;\n\n/*\nvar id = parseInt(msg.payload[0].ID);\nif (id != 0) {\n    flow.set('id_edge', id);\n}\nelse {\n    flow.set('id_edge', 1);\n}\nreturn msg;\n*/",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 670,
+        "y": 120,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b485d1c8c0889d2b",
+        "type": "influxdb in",
+        "z": "c30771c48096f533",
+        "influxdb": "3653219624a66dd0",
+        "name": "Robot Measurement",
+        "query": "SELECT * FROM \"robotMovements\"  ORDER BY time DESC",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 360,
+        "y": 160,
+        "wires": [
+            [
+                "1b875a31d72ff402"
+            ]
+        ]
+    },
+    {
+        "id": "1b875a31d72ff402",
+        "type": "function",
+        "z": "c30771c48096f533",
+        "name": "Get last ID from robot DB",
+        "func": "(msg.payload[0] != null)\n? flow.set('id_robot', parseInt(msg.payload[0].ID))\n: flow.set('id_robot', parseInt(0));\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 630,
+        "y": 160,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "0b96684238d7921a",
+        "type": "http request",
+        "z": "c30771c48096f533",
+        "name": "[POST] Robot 1",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": "query",
+        "url": "http://192.168.1.104:1880/nodoedgeInput",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 1240,
+        "y": 780,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "205d2d29f04d772e",
+        "type": "delay",
+        "z": "c30771c48096f533",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "10",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 630,
+        "y": 1020,
+        "wires": [
+            [
+                "d7aa979b8e965972"
+            ]
+        ]
+    },
+    {
+        "id": "2fd0e79b1d41fd36",
+        "type": "influxdb in",
+        "z": "c30771c48096f533",
+        "influxdb": "3653219624a66dd0",
+        "name": "Nodoedge Measurement",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 790,
+        "y": 1080,
+        "wires": [
+            [
+                "97367e2c820cbfd8",
+                "b1ac4bb5df86997e"
+            ]
+        ]
+    },
+    {
+        "id": "b1a6ee1d60d9b62a",
+        "type": "function",
+        "z": "c30771c48096f533",
+        "name": "Beautifier",
+        "func": "let task = msg.payload[0].fields.Task;\nlet id_edge = msg.payload[0].tags.ID;\n\nmsg.payload = {\n    \"Task\": task,\n    \"id_nodoEdge\": id_edge\n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1040,
+        "y": 780,
+        "wires": [
+            [
+                "0b96684238d7921a",
+                "811b5b45aa40d210"
+            ]
+        ]
+    },
+    {
+        "id": "4459021d2909e07c",
+        "type": "function",
+        "z": "c30771c48096f533",
+        "name": "Query to check the existance of the instruction",
+        "func": "msg.query = \"SELECT * FROM nodoedgeMovements  where ID = '\" \n            + msg.payload.id_nodoEdge \n            + \"' AND Task = '\" \n            + msg.payload.Task \n            + \"' AND RobotID = '\" \n            + msg.payload.robotID\n            + \"'\";\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 460,
+        "y": 1080,
+        "wires": [
+            [
+                "2fd0e79b1d41fd36",
+                "7edc491abcc31db6"
+            ]
+        ]
+    },
+    {
+        "id": "f4399b7ac5733960",
+        "type": "debug",
+        "z": "c30771c48096f533",
+        "name": "debug 12",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 340,
+        "y": 980,
+        "wires": []
+    },
+    {
+        "id": "97367e2c820cbfd8",
+        "type": "switch",
+        "z": "c30771c48096f533",
+        "name": "Verification of the instruction",
+        "property": "payload[0]",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "nempty"
+            },
+            {
+                "t": "null"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 1060,
+        "y": 1080,
+        "wires": [
+            [
+                "e09f98426cd4b2fb"
+            ],
+            [
+                "eea8d5e55879f4f4"
+            ]
+        ]
+    },
+    {
+        "id": "eea8d5e55879f4f4",
+        "type": "debug",
+        "z": "c30771c48096f533",
+        "name": "debug 15",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1160,
+        "y": 1140,
+        "wires": []
+    },
+    {
+        "id": "d9cc277a5b3cf077",
+        "type": "delay",
+        "z": "c30771c48096f533",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "10",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 1310,
+        "y": 740,
+        "wires": [
+            [
+                "f4b0148869f54a08"
+            ]
+        ]
+    },
+    {
+        "id": "5a3c6f2d100a706e",
+        "type": "mqtt in",
+        "z": "c30771c48096f533",
+        "name": "",
+        "topic": "sensores",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "9eebed49fee1d835",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 140,
+        "y": 1280,
+        "wires": [
+            [
+                "cb53f5898e6f022f",
+                "7dc08eeb5f5806bc"
+            ]
+        ]
+    },
+    {
+        "id": "55832d8dc91024c3",
+        "type": "debug",
+        "z": "c30771c48096f533",
+        "name": "debug 20",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 620,
+        "y": 1320,
+        "wires": []
+    },
+    {
+        "id": "cb53f5898e6f022f",
+        "type": "function",
+        "z": "c30771c48096f533",
+        "name": "(MQTT[4] -> Server) Translation",
+        "func": "//msg.payload = {\"Sens1\": msg.payload[0], \"Sens2\": msg.payload[1], \"Sens3\": msg.payload[2], \"Sens4\": msg.payload[3]};\nmsg.payload = {\n    \"Sens1\": msg.payload[0],\n    \"Sens2\": msg.payload[1], \n    \"Sens3\": \"999\", \n    \"Sens4\": \"999\"\n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 390,
+        "y": 1280,
+        "wires": [
+            [
+                "55832d8dc91024c3",
+                "2dfe5f0ac3f2840f"
+            ]
+        ]
+    },
+    {
+        "id": "774ef9cfd715f9a8",
+        "type": "inject",
+        "z": "c30771c48096f533",
+        "name": "Clean DB",
+        "props": [],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 160,
+        "y": 460,
+        "wires": [
+            [
+                "b4aef5ddf71c4e1f",
+                "6c0c491cb5ff0354",
+                "82a7f0ab99c3ad41",
+                "1aa6992287d304f1",
+                "644d5730a7b3e9d8"
+            ]
+        ]
+    },
+    {
+        "id": "b4aef5ddf71c4e1f",
+        "type": "influxdb in",
+        "z": "c30771c48096f533",
+        "influxdb": "3653219624a66dd0",
+        "name": "Nodoedge Measurement",
+        "query": "drop measurement nodoedgeMovements",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 430,
+        "y": 420,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "6c0c491cb5ff0354",
+        "type": "influxdb in",
+        "z": "c30771c48096f533",
+        "influxdb": "3653219624a66dd0",
+        "name": "Robot Measurement",
+        "query": "drop measurement robotMovements",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 420,
+        "y": 460,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "82a7f0ab99c3ad41",
+        "type": "influxdb in",
+        "z": "c30771c48096f533",
+        "influxdb": "3653219624a66dd0",
+        "name": "Sensors Values",
+        "query": "drop measurement sensorsValues",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 400,
+        "y": 500,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "084136d48dc3b327",
+        "type": "http in",
+        "z": "c30771c48096f533",
+        "name": "Get Last Instruction",
+        "url": "/node-edge/instruction/get-last",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 130,
+        "y": 1620,
+        "wires": [
+            [
+                "692bae2d7eb90720"
+            ]
+        ]
+    },
+    {
+        "id": "4d37fe21365ac0ec",
+        "type": "http response",
+        "z": "c30771c48096f533",
+        "name": "Get Last Instruction Response",
+        "statusCode": "",
+        "headers": {},
+        "x": 1010,
+        "y": 1620,
+        "wires": []
+    },
+    {
+        "id": "692bae2d7eb90720",
+        "type": "influxdb in",
+        "z": "c30771c48096f533",
+        "influxdb": "3653219624a66dd0",
+        "name": "Get Last Instruction(robot) From DB",
+        "query": "SELECT * FROM \"robotMovements\" ORDER BY time DESC \n",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 420,
+        "y": 1620,
+        "wires": [
+            [
+                "da8f131956fe0760",
+                "d7d13157ea0de0e5"
+            ]
+        ]
+    },
+    {
+        "id": "da8f131956fe0760",
+        "type": "function",
+        "z": "c30771c48096f533",
+        "name": "Response Validation",
+        "func": "// Verifica si se obtuvo algún dato de InfluxDB\nif (msg.payload && msg.payload.length > 0) {\n    // Si existe dato, asigna status 200 y empaqueta el resultado\n    msg.statusCode = 200;\n    msg.payload = {\n        status: \"ok\",\n        data: msg.payload[0] // El último dato obtenido, ya que LIMIT 1\n    };\n} else {\n    // Si no se encontró ningún dato, asigna otro status, por ejemplo 404\n    msg.statusCode = 404;\n    msg.payload = {\n        status: \"error\",\n        message: \"No se encontraron datos\"\n    };\n}\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 720,
+        "y": 1620,
+        "wires": [
+            [
+                "4d37fe21365ac0ec",
+                "d5dd35b1f2e07bda"
+            ]
+        ]
+    },
+    {
+        "id": "d7d13157ea0de0e5",
+        "type": "debug",
+        "z": "c30771c48096f533",
+        "name": "GLI DB",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 680,
+        "y": 1680,
+        "wires": []
+    },
+    {
+        "id": "d5dd35b1f2e07bda",
+        "type": "debug",
+        "z": "c30771c48096f533",
+        "name": "GLI - Response",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 960,
+        "y": 1680,
+        "wires": []
+    },
+    {
+        "id": "b1a0018c6fceb320",
+        "type": "http in",
+        "z": "c30771c48096f533",
+        "name": "Get Last Instruction Echo",
+        "url": "/node-edge/instruction-echo/get-last",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 150,
+        "y": 1760,
+        "wires": [
+            [
+                "5105f0c17fb2e088"
+            ]
+        ]
+    },
+    {
+        "id": "022ebf66aa276f03",
+        "type": "http response",
+        "z": "c30771c48096f533",
+        "name": "Get Last Instruction Response",
+        "statusCode": "",
+        "headers": {},
+        "x": 1010,
+        "y": 1760,
+        "wires": []
+    },
+    {
+        "id": "5105f0c17fb2e088",
+        "type": "influxdb in",
+        "z": "c30771c48096f533",
+        "influxdb": "3653219624a66dd0",
+        "name": "Get Last Instruction(echo) From DB",
+        "query": "SELECT * FROM \"nodoedgeMovements\" ORDER BY time DESC LIMIT 1\n",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 420,
+        "y": 1760,
+        "wires": [
+            [
+                "077b8f839199f345",
+                "c27285e2d7a11661"
+            ]
+        ]
+    },
+    {
+        "id": "077b8f839199f345",
+        "type": "function",
+        "z": "c30771c48096f533",
+        "name": "Response Validation",
+        "func": "// Verifica si se obtuvo algún dato de InfluxDB\nif (msg.payload && msg.payload.length > 0) {\n    // Si existe dato, asigna status 200 y empaqueta el resultado\n    msg.statusCode = 200;\n    msg.payload = {\n        status: \"ok\",\n        data: msg.payload[0] // El último dato obtenido, ya que LIMIT 1\n    };\n} else {\n    // Si no se encontró ningún dato, asigna otro status, por ejemplo 404\n    msg.statusCode = 404;\n    msg.payload = {\n        status: \"error\",\n        message: \"No se encontraron datos\"\n    };\n}\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 720,
+        "y": 1760,
+        "wires": [
+            [
+                "022ebf66aa276f03",
+                "2a901bd846fcb0bc"
+            ]
+        ]
+    },
+    {
+        "id": "c27285e2d7a11661",
+        "type": "debug",
+        "z": "c30771c48096f533",
+        "name": "GLIe DB",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 680,
+        "y": 1820,
+        "wires": []
+    },
+    {
+        "id": "2a901bd846fcb0bc",
+        "type": "debug",
+        "z": "c30771c48096f533",
+        "name": "GLIe - Response",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 970,
+        "y": 1820,
+        "wires": []
+    },
+    {
+        "id": "38c8d6cff7a8b9e8",
+        "type": "http in",
+        "z": "c30771c48096f533",
+        "name": "Get Last Sensors Values",
+        "url": "/node-edge/instruction/get-last",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 150,
+        "y": 1900,
+        "wires": [
+            [
+                "ba0a8a4059e1ba25"
+            ]
+        ]
+    },
+    {
+        "id": "a6ec7f38542fc21c",
+        "type": "http response",
+        "z": "c30771c48096f533",
+        "name": "Get Last Sensor Values Response",
+        "statusCode": "",
+        "headers": {},
+        "x": 1020,
+        "y": 1900,
+        "wires": []
+    },
+    {
+        "id": "ba0a8a4059e1ba25",
+        "type": "influxdb in",
+        "z": "c30771c48096f533",
+        "influxdb": "3653219624a66dd0",
+        "name": "Get Last Sesnors Values From DB",
+        "query": "SELECT * FROM \"sensorsValues\" ORDER BY time DESC LIMIT 1\n",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 420,
+        "y": 1900,
+        "wires": [
+            [
+                "e7562f8e820d8f40",
+                "4ec5135baa1da9a4"
+            ]
+        ]
+    },
+    {
+        "id": "e7562f8e820d8f40",
+        "type": "function",
+        "z": "c30771c48096f533",
+        "name": "Response Validation",
+        "func": "// Verifica si se obtuvo algún dato de InfluxDB\nif (msg.payload && msg.payload.length > 0) {\n    // Si existe dato, asigna status 200 y empaqueta el resultado\n    msg.statusCode = 200;\n    msg.payload = {\n        status: \"ok\",\n        data: msg.payload[0] // El último dato obtenido, ya que LIMIT 1\n    };\n} else {\n    // Si no se encontró ningún dato, asigna otro status, por ejemplo 404\n    msg.statusCode = 404;\n    msg.payload = {\n        status: \"error\",\n        message: \"No se encontraron datos\"\n    };\n}\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 720,
+        "y": 1900,
+        "wires": [
+            [
+                "a6ec7f38542fc21c",
+                "4d59ba3226fb7402"
+            ]
+        ]
+    },
+    {
+        "id": "4ec5135baa1da9a4",
+        "type": "debug",
+        "z": "c30771c48096f533",
+        "name": "GLSV DB",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 680,
+        "y": 1960,
+        "wires": []
+    },
+    {
+        "id": "4d59ba3226fb7402",
+        "type": "debug",
+        "z": "c30771c48096f533",
+        "name": "GLSV - Response",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 970,
+        "y": 1960,
+        "wires": []
+    },
+    {
+        "id": "bc8959740addfca6",
+        "type": "comment",
+        "z": "c30771c48096f533",
+        "name": "Sensors Reading Flow‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ",
+        "info": "",
+        "x": 900,
+        "y": 1220,
+        "wires": []
+    },
+    {
+        "id": "4273a994bee85263",
+        "type": "comment",
+        "z": "c30771c48096f533",
+        "name": "Movements Done Flow‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ",
+        "info": "",
+        "x": 900,
+        "y": 940,
+        "wires": []
+    },
+    {
+        "id": "ba5419d605b18c5b",
+        "type": "function",
+        "z": "c30771c48096f533",
+        "name": "Verificador",
+        "func": "let validTask =[\n    \"adelante\",\n    \"atras\",\n    \"izquierda\",\n    \"derecha\",\n    \"parar\"\n];\n\nif (validTask.includes(msg.payload.Task)){\n    msg.statusCode = 200;\n    return [null, msg];\n}\n\nmsg.statusCode = 404;\nmsg.payload = \"Task is not valid: \" + msg.payload;\nreturn [msg, null];",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 550,
+        "y": 700,
+        "wires": [
+            [
+                "6558a88c26833fcf"
+            ],
+            [
+                "2594178f04aba989"
+            ]
+        ]
+    },
+    {
+        "id": "e09f98426cd4b2fb",
+        "type": "function",
+        "z": "c30771c48096f533",
+        "name": "Query to UPDATE the instruction",
+        "func": "msg.payload = [{\n    measurement: \"nodoedgeMovements\",\n    fields: {\n        \"Task\": msg.payload[0].Task, \n        \"Executed\": true,\n        \"RobotID\": msg.payload[0].RobotID\n    },\n    tags: {\n        \"ID\": msg.payload[0].ID\n    },\n    'timestamp': msg.payload[0].time\n}];\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1380,
+        "y": 1080,
+        "wires": [
+            [
+                "012c8bdf7a91fcbf",
+                "8aab61c8e751965e"
+            ]
+        ]
+    },
+    {
+        "id": "b1ac4bb5df86997e",
+        "type": "debug",
+        "z": "c30771c48096f533",
+        "name": "debug 33",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 920,
+        "y": 1140,
+        "wires": []
+    },
+    {
+        "id": "f87c17eed17da6ce",
+        "type": "debug",
+        "z": "c30771c48096f533",
+        "name": "debug 35",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 540,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "df3bd26d952c1c9c",
+        "type": "http response",
+        "z": "c30771c48096f533",
+        "name": "",
+        "statusCode": "200",
+        "headers": {},
+        "x": 380,
+        "y": 740,
+        "wires": []
+    },
+    {
+        "id": "6558a88c26833fcf",
+        "type": "function",
+        "z": "c30771c48096f533",
+        "name": "ToDo: Invalid Instruction",
+        "func": "\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 790,
+        "y": 700,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "012c8bdf7a91fcbf",
+        "type": "influxdb batch",
+        "z": "c30771c48096f533",
+        "influxdb": "3653219624a66dd0",
+        "precision": "ms",
+        "retentionPolicy": "",
+        "name": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 1690,
+        "y": 1080,
+        "wires": []
+    },
+    {
+        "id": "f4b0148869f54a08",
+        "type": "influxdb batch",
+        "z": "c30771c48096f533",
+        "influxdb": "3653219624a66dd0",
+        "precision": "ms",
+        "retentionPolicy": "",
+        "name": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 1550,
+        "y": 740,
+        "wires": []
+    },
+    {
+        "id": "35b620cbbb3630e0",
+        "type": "comment",
+        "z": "c30771c48096f533",
+        "name": "Instruction Flow‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ",
+        "info": "",
+        "x": 900,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "5f2393b57d33e77a",
+        "type": "comment",
+        "z": "c30771c48096f533",
+        "name": "Global Variables‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ",
+        "info": "",
+        "x": 900,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "7dc08eeb5f5806bc",
+        "type": "debug",
+        "z": "c30771c48096f533",
+        "name": "debug 37",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 280,
+        "y": 1340,
+        "wires": []
+    },
+    {
+        "id": "9c65473cabb84590",
+        "type": "influxdb batch",
+        "z": "c30771c48096f533",
+        "influxdb": "3653219624a66dd0",
+        "precision": "ms",
+        "retentionPolicy": "",
+        "name": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 850,
+        "y": 1280,
+        "wires": []
+    },
+    {
+        "id": "2dfe5f0ac3f2840f",
+        "type": "function",
+        "z": "c30771c48096f533",
+        "name": "Beautifier",
+        "func": "msg.payload = [{\n    measurement: \"sensorsValues\",\n    fields: msg.payload,\n    'timestamp': new Date().getTime()\n}];\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 620,
+        "y": 1280,
+        "wires": [
+            [
+                "9c65473cabb84590",
+                "69710987f3791b78"
+            ]
+        ]
+    },
+    {
+        "id": "69710987f3791b78",
+        "type": "debug",
+        "z": "c30771c48096f533",
+        "name": "debug 38",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 800,
+        "y": 1320,
+        "wires": []
+    },
+    {
+        "id": "d7aa979b8e965972",
+        "type": "influxdb batch",
+        "z": "c30771c48096f533",
+        "influxdb": "3653219624a66dd0",
+        "precision": "ms",
+        "retentionPolicy": "",
+        "name": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 870,
+        "y": 1020,
+        "wires": []
+    },
+    {
+        "id": "aaa7442093b57b24",
+        "type": "http request",
+        "z": "c30771c48096f533",
+        "name": "[POST] Robot 2",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "http://localhost:1880/instruction",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 1480,
+        "y": 820,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "811b5b45aa40d210",
+        "type": "function",
+        "z": "c30771c48096f533",
+        "name": "ES -> EN Translator",
+        "func": "const map = new Map([\n    [\"adelante\", \"Forward\"],\n    [\"atras\", \"Backward\"],\n    [\"izquierda\", \"Rotate Left\"],\n    [\"derecha\", \"Rotate Right\"],\n    [\"parar\", \"Brake\"],\n])\n\nmsg.payload.instruction = map.get(msg.payload.Task);\nmsg.id_nodoEdge = msg.payload.id_nodoEdge\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1260,
+        "y": 820,
+        "wires": [
+            [
+                "aaa7442093b57b24"
+            ]
+        ]
+    },
+    {
+        "id": "57ab57ce17de8e8c",
+        "type": "inject",
+        "z": "c30771c48096f533",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"Task\":\"adelante\"}",
+        "payloadType": "json",
+        "x": 610,
+        "y": 800,
+        "wires": [
+            [
+                "2594178f04aba989"
+            ]
+        ]
+    },
+    {
+        "id": "b07b6e44e39bee7a",
+        "type": "debug",
+        "z": "c30771c48096f533",
+        "name": "debug 41",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 890,
+        "y": 820,
+        "wires": []
+    },
+    {
+        "id": "f9f1f4832ab489be",
+        "type": "http request",
+        "z": "c30771c48096f533",
+        "name": "[POST] Robot 1",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": "query",
+        "url": "http://192.168.1.109:1880/nodoedgeInput",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 1480,
+        "y": 780,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "8aab61c8e751965e",
+        "type": "debug",
+        "z": "c30771c48096f533",
+        "name": "debug 42",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1510,
+        "y": 1140,
+        "wires": []
+    },
+    {
+        "id": "a53a13f4d1da4379",
+        "type": "function",
+        "z": "c30771c48096f533",
+        "name": "Save it twice for 2 Robots",
+        "func": "//let max = flow.get('cantRobots');\nlet max = 2;\n\nfor (let i = 0; i < max; i++) {\n    msg.payload[0].fields.RobotID = String(i+1);\n    msg.payload[0].timestamp= new Date().getTime();\n    node.send(msg);    \n}\n\nreturn null;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1090,
+        "y": 740,
+        "wires": [
+            [
+                "d9cc277a5b3cf077",
+                "097016acaaa449f4"
+            ]
+        ]
+    },
+    {
+        "id": "097016acaaa449f4",
+        "type": "debug",
+        "z": "c30771c48096f533",
+        "name": "debug 43",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1230,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "7edc491abcc31db6",
+        "type": "debug",
+        "z": "c30771c48096f533",
+        "name": "debug 44",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 660,
+        "y": 1140,
+        "wires": []
+    },
+    {
+        "id": "9eebed49fee1d835",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "localhost",
+        "port": "1884",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "3653219624a66dd0",
+        "type": "influxdb",
+        "hostname": "127.0.0.1",
+        "port": "8086",
+        "protocol": "http",
+        "database": "robot_movements",
+        "name": "robot_movements",
+        "usetls": false,
+        "tls": "",
+        "influxdbVersion": "1.x",
+        "url": "http://localhost:8086",
+        "rejectUnauthorized": true
+    }
+]

@@ -1,0 +1,3316 @@
+[
+    {
+        "id": "3f5e27f1057c3b43",
+        "type": "tab",
+        "label": "Robot 2 Backend",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "90c583b912d3bc3a",
+        "type": "http in",
+        "z": "3f5e27f1057c3b43",
+        "name": "Last Battery Value",
+        "url": "/battery-level/last",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 170,
+        "y": 600,
+        "wires": [
+            [
+                "1f089d99a79af909",
+                "5b89ea0037cb0e87"
+            ]
+        ]
+    },
+    {
+        "id": "1f089d99a79af909",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to select last value",
+        "func": "let measurement = flow.get('batteryMeasurement');\nlet query = 'WHERE \"read\" = false'\n\nmsg.query = 'SELECT * FROM ' \n            + measurement \n            + ' ' \n            + query\n            + ' ORDER BY time DESC LIMIT 1';\n\nmsg.payload = null;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 430,
+        "y": 600,
+        "wires": [
+            [
+                "2360dfa8bfa2c716"
+            ]
+        ]
+    },
+    {
+        "id": "28b333c949747730",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Check Result [Empty, Msg]",
+        "func": "if (!msg.payload || msg.payload.length === 0) {\n    msg.statusCode = 204;\n    msg.payload = \"NO NEW Battery Value\";\n    return [msg, null];  // Ruta 204\n}\n\nlet record = msg.payload[0];\nmsg.payload = {\n    \"id\": record.id,\n    \"level\": parseInt(record.level),\n    \"time\": record.time,\n    \"read\": record.read === \"true\"\n};\nmsg.statusCode = 200;\nreturn [null, msg];\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 940,
+        "y": 600,
+        "wires": [
+            [
+                "4c96e2f577695408"
+            ],
+            [
+                "7fa84ebaa1b6c47f",
+                "4c96e2f577695408"
+            ]
+        ]
+    },
+    {
+        "id": "4c96e2f577695408",
+        "type": "http response",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1170,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "7fa84ebaa1b6c47f",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Setting \"read\" to True and parsing",
+        "func": "const data = msg.payload;\n\nconst level = data.level;\nconst id = data.id;\nconst timestamp = data.time ? new Date(data.time) : new Date();\n\nconst measurement = flow.get('batteryMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"level\": level,\n        \"read\": true\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': timestamp.getTime()\n    //'timestamp': timestamp.valueOf()\n}];\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1260,
+        "y": 640,
+        "wires": [
+            [
+                "4725b23d97db0a67"
+            ]
+        ]
+    },
+    {
+        "id": "dc602506a8132d81",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "BatteryLevelModel",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"id\":123,\"level\":89,\"read\":false}",
+        "payloadType": "json",
+        "x": 190,
+        "y": 520,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "846803d9c39de7da",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "GET /battery-level/last",
+        "info": "",
+        "x": 180,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "4c08e228e62c6c14",
+        "type": "http in",
+        "z": "3f5e27f1057c3b43",
+        "name": "Save New Instruction ",
+        "url": "/instruction",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 180,
+        "y": 1280,
+        "wires": [
+            [
+                "f7986180aacf65ef",
+                "e3362a050e764cec"
+            ]
+        ]
+    },
+    {
+        "id": "e3362a050e764cec",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to insert instruction",
+        "func": "let instructionSet = [\n    \"Brake\", \n    \"Backward\", \n    \"Forward\",\n    \"Rotate Right\",\n    \"Rotate Left\",\n    \"SpeedUp\",\n    \"SpeedDown\",\n    \"Pause\",\n    \"Play\"\n    ]\n\nlet measurement = flow.get('instructionMeasurement');\nlet id = parseInt(flow.get('id_instruction'));\nlet task = msg.payload.instruction;\n\nvar exists = instructionSet.includes(task);\n\nif (!exists){\n    msg.payload = null;\n    return msg;\n}\n\nmsg.id_nodoEdge = msg.payload.id_nodoEdge;\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"instruction\": task,\n        \"read\": false\n    },\n    tags: {\n        \"id\": id\n    },\n    //'timestamp': timestamp.getTime()\n    'timestamp': new Date().valueOf()\n}];\n\nflow.set('id_instruction', id + 1);\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 450,
+        "y": 1280,
+        "wires": [
+            [
+                "cab52bb542308489",
+                "f8f6e1c99046f8df"
+            ]
+        ]
+    },
+    {
+        "id": "f8f6e1c99046f8df",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Check Result [Empty, Msg]",
+        "func": "if (!msg.payload || msg.payload.length === 0) {\n    msg.statusCode = 400;\n    msg.payload = null;\n    return [msg, null];  // Ruta 204\n}\n\nlet record = msg.payload[0];\nmsg.payload = {\n    \"id\": record.tags.id,\n    \"instruction\": record.fields.instruction,\n    \"time\": record.timestamp,\n    \"read\": record.fields.read \n};\nmsg.statusCode = 200;\nreturn [null, msg];\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 720,
+        "y": 1340,
+        "wires": [
+            [
+                "a2c5745d2f04fcd2"
+            ],
+            [
+                "a2c5745d2f04fcd2",
+                "09e9f17a5dadfa10"
+            ]
+        ]
+    },
+    {
+        "id": "a2c5745d2f04fcd2",
+        "type": "http response",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 950,
+        "y": 1340,
+        "wires": []
+    },
+    {
+        "id": "0814f2c1a3d9810d",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "POST /instruction",
+        "info": "",
+        "x": 160,
+        "y": 1240,
+        "wires": []
+    },
+    {
+        "id": "355f0628ae61f767",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "InstructionModel",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"id\":123,\"instruction\":\"Forward\",\"read\":false}",
+        "payloadType": "json",
+        "x": 180,
+        "y": 880,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "58f7aebc55d43a05",
+        "type": "mqtt out",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "topic": "Instruction",
+        "qos": "1",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "78b50610a06c74af",
+        "x": 1150,
+        "y": 1380,
+        "wires": []
+    },
+    {
+        "id": "4725b23d97db0a67",
+        "type": "influxdb batch",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "precision": "ms",
+        "retentionPolicy": "",
+        "name": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 1540,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "cab52bb542308489",
+        "type": "influxdb batch",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "precision": "ms",
+        "retentionPolicy": "",
+        "name": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 700,
+        "y": 1280,
+        "wires": []
+    },
+    {
+        "id": "2360dfa8bfa2c716",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 680,
+        "y": 600,
+        "wires": [
+            [
+                "28b333c949747730"
+            ]
+        ]
+    },
+    {
+        "id": "f21b27f88b2c309a",
+        "type": "http in",
+        "z": "3f5e27f1057c3b43",
+        "name": "Get ID Instruction or Last",
+        "url": "/instruction/:id",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 920,
+        "wires": [
+            [
+                "046b78848105d1d7",
+                "88295686fc184715"
+            ]
+        ]
+    },
+    {
+        "id": "83ea826f8e95d5a6",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to fetch ID instruction",
+        "func": "let id = Number(msg.req.params.id);\nlet measurement = flow.get('instructionMeasurement');\nlet query = 'WHERE \"id\" = ' + \"'\" + id + \"'\";\n\nmsg.query = 'SELECT * FROM ' \n            + measurement \n            + ' ' \n            + query\n            + ' ORDER BY time DESC LIMIT 1';\nmsg.payload = null;\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 660,
+        "y": 1040,
+        "wires": [
+            [
+                "8f19029c7d917eb7"
+            ]
+        ]
+    },
+    {
+        "id": "f8084207962db9f0",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "GET /instruction/:ID",
+        "info": "",
+        "x": 630,
+        "y": 1000,
+        "wires": []
+    },
+    {
+        "id": "8b9b613c5b0dc795",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "Global vars",
+        "info": "",
+        "x": 90,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "0a46d3652bd0fe27",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "props": [],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 150,
+        "y": 240,
+        "wires": [
+            [
+                "9bb941d3461b125e"
+            ]
+        ]
+    },
+    {
+        "id": "9bb941d3461b125e",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Set Battery Measurement Name",
+        "func": "flow.set('batteryMeasurement', 'batteryLevel');\nreturn null;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 380,
+        "y": 240,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "d94025d412e2094d",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "props": [],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 150,
+        "y": 280,
+        "wires": [
+            [
+                "20506c59fa366c40"
+            ]
+        ]
+    },
+    {
+        "id": "20506c59fa366c40",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Set Instruction Measurement Name",
+        "func": "flow.set('instructionMeasurement', 'instruction');\nreturn null;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 390,
+        "y": 280,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "bf2724a072c662a1",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "props": [],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 150,
+        "y": 320,
+        "wires": [
+            [
+                "c3de6fb2f8e6013c"
+            ]
+        ]
+    },
+    {
+        "id": "c3de6fb2f8e6013c",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Set MappingValue Measurement Name",
+        "func": "flow.set('mappingValueMeasurement', 'mappingValue');\nreturn null;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 410,
+        "y": 320,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "120f6767f7d146e8",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "props": [],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 150,
+        "y": 360,
+        "wires": [
+            [
+                "e0002ed8be3bbfca"
+            ]
+        ]
+    },
+    {
+        "id": "e0002ed8be3bbfca",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Set MessageMeasurement Name",
+        "func": "flow.set('messageMeasurement', 'message');\nreturn null;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 390,
+        "y": 360,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b445449334533b4b",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Check Result [Empty, Msg]",
+        "func": "if (!msg.payload || msg.payload.length === 0) {\n    msg.statusCode = 404;\n    msg.payload = \"Instruction not found with id\";\n    return [msg, null];  // Ruta 404\n}\n\nlet record = msg.payload[0];\nmsg.payload = {\n    \"id\": record.id,\n    \"instruction\": record.instruction,\n    \"time\": record.time,\n    \"read\": record.read\n};\nmsg.statusCode = 200;\nreturn [null, msg];\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1180,
+        "y": 1040,
+        "wires": [
+            [
+                "ef10f3bbb96087eb"
+            ],
+            [
+                "398c6e12a8d8a4af",
+                "ef10f3bbb96087eb"
+            ]
+        ]
+    },
+    {
+        "id": "ef10f3bbb96087eb",
+        "type": "http response",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1410,
+        "y": 1040,
+        "wires": []
+    },
+    {
+        "id": "398c6e12a8d8a4af",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Setting \"read\" to True and parsing",
+        "func": "const data = msg.payload;\nconst instruction = data.instruction;\nconst id = data.id;\nconst timestamp = data.time ? new Date(data.time) : new Date();\nlet measurement = flow.get('instructionMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"instruction\": instruction,\n        \"read\": true\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': timestamp.getTime()\n    //'timestamp': timestamp.valueOf()\n}];\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1500,
+        "y": 1080,
+        "wires": [
+            [
+                "74db99f0f5f033ed"
+            ]
+        ]
+    },
+    {
+        "id": "74db99f0f5f033ed",
+        "type": "influxdb batch",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "precision": "ms",
+        "retentionPolicy": "",
+        "name": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 1780,
+        "y": 1080,
+        "wires": []
+    },
+    {
+        "id": "8f19029c7d917eb7",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 920,
+        "y": 1040,
+        "wires": [
+            [
+                "b445449334533b4b"
+            ]
+        ]
+    },
+    {
+        "id": "602d4ca094a6a26f",
+        "type": "http in",
+        "z": "3f5e27f1057c3b43",
+        "name": "Delete ID Instruction ",
+        "url": "/instruction/:id",
+        "method": "delete",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 170,
+        "y": 1160,
+        "wires": [
+            [
+                "6d4b199e0c06ba37",
+                "a30d72ed81b2368d"
+            ]
+        ]
+    },
+    {
+        "id": "73035dd99a08f472",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "DELETE /instruction/:ID",
+        "info": "",
+        "x": 180,
+        "y": 1120,
+        "wires": []
+    },
+    {
+        "id": "df50fd53ca57ffe0",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to select last value",
+        "func": "let measurement = flow.get('instructionMeasurement');\nlet query = 'WHERE \"read\" = false'\n\nmsg.query = 'SELECT * FROM ' \n            + measurement \n            + ' ' \n            + query\n            + ' ORDER BY time DESC LIMIT 1';\n\nmsg.payload = null;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 650,
+        "y": 920,
+        "wires": [
+            [
+                "94653b44a03e5062"
+            ]
+        ]
+    },
+    {
+        "id": "ba54521c32d78c64",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Check Result [Empty, Msg]",
+        "func": "if (!msg.payload || msg.payload.length === 0) {\n    msg.statusCode = 204;\n    msg.payload = \"NO NEW INSTRUCTION\";\n    return [msg, null];  // Ruta 204\n}\n\nlet record = msg.payload[0];\nmsg.payload = {\n    \"id\": record.id,\n    \"instruction\": record.instruction,\n    \"time\": record.time,\n    \"read\": record.read\n};\nmsg.statusCode = 200;\nreturn [null, msg];\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1180,
+        "y": 920,
+        "wires": [
+            [
+                "48c6ffe333365113"
+            ],
+            [
+                "b0ba29dae81c8435",
+                "48c6ffe333365113"
+            ]
+        ]
+    },
+    {
+        "id": "48c6ffe333365113",
+        "type": "http response",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1410,
+        "y": 920,
+        "wires": []
+    },
+    {
+        "id": "b0ba29dae81c8435",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Setting \"read\" to True and parsing",
+        "func": "const data = msg.payload;\nconst instruction = data.instruction;\nconst id = data.id;\nconst timestamp = data.time ? new Date(data.time) : new Date();\nlet measurement = flow.get('instructionMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"instruction\": instruction,\n        \"read\": true\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': timestamp.getTime()\n    //'timestamp': timestamp.valueOf()\n}];\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1500,
+        "y": 960,
+        "wires": [
+            [
+                "bf6b3c54fd547ca8"
+            ]
+        ]
+    },
+    {
+        "id": "fece0be2fba08b95",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "GET /instruction/last",
+        "info": "",
+        "x": 630,
+        "y": 880,
+        "wires": []
+    },
+    {
+        "id": "bf6b3c54fd547ca8",
+        "type": "influxdb batch",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "precision": "ms",
+        "retentionPolicy": "",
+        "name": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 1780,
+        "y": 960,
+        "wires": []
+    },
+    {
+        "id": "94653b44a03e5062",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 900,
+        "y": 920,
+        "wires": [
+            [
+                "ba54521c32d78c64"
+            ]
+        ]
+    },
+    {
+        "id": "917620af5cebf702",
+        "type": "http in",
+        "z": "3f5e27f1057c3b43",
+        "name": "Save New Message",
+        "url": "/message",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 170,
+        "y": 1980,
+        "wires": [
+            [
+                "92d32347a592d181",
+                "e98aae336a3082ac"
+            ]
+        ]
+    },
+    {
+        "id": "92d32347a592d181",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to insert message",
+        "func": "let measurement = flow.get('messageMeasurement');\nlet id = parseInt(flow.get('id_message'));\nlet data = msg.payload;\nlet message = data.message;\nlet type = data.type;\nlet tag = data.tag\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"message\": message,\n        \"type\": type,\n        \"tag\": tag,\n        \"read\": false\n    },\n    tags: {\n        \"id\": id\n    },\n    //'timestamp': timestamp.getTime()\n    'timestamp': new Date().valueOf()\n}];\nflow.set('id_message', id + 1);\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 430,
+        "y": 1980,
+        "wires": [
+            [
+                "4debf93424b7ab4e",
+                "da97d14d36dfa5eb"
+            ]
+        ]
+    },
+    {
+        "id": "4debf93424b7ab4e",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Check Result [Empty, Msg]",
+        "func": "if (!msg.payload || msg.payload.length === 0) {\n    msg.statusCode = 400;\n    msg.payload = null;\n    return [msg, null];  // Ruta 204\n}\n\nlet record = msg.payload[0];\nmsg.payload = {\n    \"id\": record.tags.id,\n    \"message\": record.fields.message,\n    \"type\": record.fields.type,\n    \"tag\": record.fields.tag,\n    \"time\": record.timestamp,\n    \"read\": record.fields.read \n};\nmsg.statusCode = 200;\nreturn [null, msg];",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 700,
+        "y": 2040,
+        "wires": [
+            [
+                "5bf2acbfbe08b021"
+            ],
+            [
+                "5bf2acbfbe08b021",
+                "cca150eea87af79a"
+            ]
+        ]
+    },
+    {
+        "id": "5bf2acbfbe08b021",
+        "type": "http response",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 930,
+        "y": 2040,
+        "wires": []
+    },
+    {
+        "id": "257d44a5a94c292f",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "POST /message",
+        "info": "",
+        "x": 160,
+        "y": 1940,
+        "wires": []
+    },
+    {
+        "id": "37f3b8a651e2a765",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "messageModel",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"id\":123,\"message\":\"System maintenance\",\"type\":\"Notification\",\"tag\":\"system\",\"read\":false}",
+        "payloadType": "json",
+        "x": 180,
+        "y": 1580,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "cca150eea87af79a",
+        "type": "mqtt out",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "topic": "Message",
+        "qos": "1",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "78b50610a06c74af",
+        "x": 940,
+        "y": 2080,
+        "wires": []
+    },
+    {
+        "id": "da97d14d36dfa5eb",
+        "type": "influxdb batch",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "precision": "ms",
+        "retentionPolicy": "",
+        "name": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 680,
+        "y": 1980,
+        "wires": []
+    },
+    {
+        "id": "38014bf249d7c320",
+        "type": "http in",
+        "z": "3f5e27f1057c3b43",
+        "name": "Get ID message or Last",
+        "url": "/message/:id",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 180,
+        "y": 1620,
+        "wires": [
+            [
+                "933dbbcd159a80c6",
+                "23f95b04b3aeb79e"
+            ]
+        ]
+    },
+    {
+        "id": "5dad464dd0a04ad1",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to fetch ID instruction",
+        "func": "let id = Number(msg.req.params.id);\nlet measurement = flow.get('messageMeasurement');\nlet query = 'WHERE \"id\" = ' + \"'\" + id + \"'\";\n\nmsg.query = 'SELECT * FROM ' \n            + measurement \n            + ' ' \n            + query\n            + ' ORDER BY time DESC LIMIT 1';\nmsg.payload = null;\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 640,
+        "y": 1740,
+        "wires": [
+            [
+                "c814bae8b5cb77ce"
+            ]
+        ]
+    },
+    {
+        "id": "d9fcac9ea60446b2",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "GET /message/:ID",
+        "info": "",
+        "x": 610,
+        "y": 1700,
+        "wires": []
+    },
+    {
+        "id": "3ce25f0ba1c16252",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Check Result [Empty, Msg]",
+        "func": "if (!msg.payload || msg.payload.length === 0) {\n    msg.statusCode = 404;\n    msg.payload = \"Message not found with id\";\n    return [msg, null];  // Ruta 404\n}\n\nlet record = msg.payload[0];\nmsg.payload = {\n    \"id\": record.id,\n    \"message\": record.message,\n    \"type\": record.type,\n    \"tag\": record.tag,\n    \"time\": record.time,\n    \"read\": record.read \n};\nmsg.statusCode = 200;\nreturn [null, msg];\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1160,
+        "y": 1740,
+        "wires": [
+            [
+                "67818b839e3c6f38"
+            ],
+            [
+                "ccc33d4673439a5f",
+                "67818b839e3c6f38"
+            ]
+        ]
+    },
+    {
+        "id": "67818b839e3c6f38",
+        "type": "http response",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1390,
+        "y": 1740,
+        "wires": []
+    },
+    {
+        "id": "ccc33d4673439a5f",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Setting \"read\" to True and parsing",
+        "func": "const data = msg.payload;\nconst message = data.message;\nconst type = data.type;\nconst tag = data.tag;\nconst id = data.id;\nconst timestamp = data.time ? new Date(data.time) : new Date();\nlet measurement = flow.get('messageMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"message\": message,\n        \"type\": type,\n        \"tag\": tag,\n        \"read\": true\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': timestamp.getTime()\n    //'timestamp': new Date().valueOf()\n}];\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1480,
+        "y": 1780,
+        "wires": [
+            [
+                "6a3bbe9276e0ca90"
+            ]
+        ]
+    },
+    {
+        "id": "6a3bbe9276e0ca90",
+        "type": "influxdb batch",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "precision": "ms",
+        "retentionPolicy": "",
+        "name": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 1760,
+        "y": 1780,
+        "wires": []
+    },
+    {
+        "id": "c814bae8b5cb77ce",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 900,
+        "y": 1740,
+        "wires": [
+            [
+                "3ce25f0ba1c16252"
+            ]
+        ]
+    },
+    {
+        "id": "eaed9fba76c285dd",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "Instruction Flow‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ",
+        "info": "",
+        "x": 900,
+        "y": 820,
+        "wires": []
+    },
+    {
+        "id": "290a5b521648a20d",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "Message Flow‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ",
+        "info": "",
+        "x": 900,
+        "y": 1520,
+        "wires": []
+    },
+    {
+        "id": "1903e60c754efdbe",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "Battery Level Flow‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ",
+        "info": "",
+        "x": 900,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "d5b7ec4970d3a4fd",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "props": [],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 150,
+        "y": 120,
+        "wires": [
+            [
+                "5c3d2e40d536e76d"
+            ]
+        ]
+    },
+    {
+        "id": "635ee8dc77ce0d8e",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Get last ID from Instruction DB",
+        "func": "(msg.payload[0] != null)\n? flow.set('id_instruction', parseInt(msg.payload[0].id) + 1)\n: flow.set('id_instruction', parseInt(0));\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 880,
+        "y": 120,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "caf6fc7ca58e94a2",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "Instruction Measurement",
+        "query": "",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 600,
+        "y": 120,
+        "wires": [
+            [
+                "635ee8dc77ce0d8e"
+            ]
+        ]
+    },
+    {
+        "id": "6956413c34f3320d",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "props": [],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 150,
+        "y": 160,
+        "wires": [
+            [
+                "7594d547f9ec63a0"
+            ]
+        ]
+    },
+    {
+        "id": "45ce23c0e261a708",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Get last ID from Message DB",
+        "func": "(msg.payload[0] != null)\n? flow.set('id_message', parseInt(msg.payload[0].id) + 1)\n: flow.set('id_message', parseInt(0));\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 870,
+        "y": 160,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "27acbe56d2964d26",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "Message Measurement",
+        "query": "",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 600,
+        "y": 160,
+        "wires": [
+            [
+                "45ce23c0e261a708"
+            ]
+        ]
+    },
+    {
+        "id": "9caa5cfc051e9010",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "props": [],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 150,
+        "y": 200,
+        "wires": [
+            [
+                "c51fe7366ec11d35"
+            ]
+        ]
+    },
+    {
+        "id": "c12795863ec1f62a",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Get last ID from MappingValue DB",
+        "func": "(msg.payload[0] != null)\n? flow.set('id_mappingValue', parseInt(msg.payload[0].id) + 1)\n: flow.set('id_mappingValue', parseInt(0));\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 910,
+        "y": 200,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "c2a58da7db7e676e",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "MappingValue Measurement",
+        "query": "",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 610,
+        "y": 200,
+        "wires": [
+            [
+                "c12795863ec1f62a"
+            ]
+        ]
+    },
+    {
+        "id": "5c3d2e40d536e76d",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to fetch last ID",
+        "func": "let measurement = flow.get('instructionMeasurement');\n\nmsg.query = 'SELECT * FROM ' \n            + measurement \n            + ' ' \n            + ' ORDER BY time DESC LIMIT 1';\nmsg.payload = null;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 350,
+        "y": 120,
+        "wires": [
+            [
+                "caf6fc7ca58e94a2"
+            ]
+        ]
+    },
+    {
+        "id": "7594d547f9ec63a0",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to fetch last ID",
+        "func": "let measurement = flow.get('messageMeasurement');\n\nmsg.query = 'SELECT * FROM ' \n            + measurement \n            + ' ' \n            + ' ORDER BY time DESC LIMIT 1';\nmsg.payload = null;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 350,
+        "y": 160,
+        "wires": [
+            [
+                "27acbe56d2964d26"
+            ]
+        ]
+    },
+    {
+        "id": "c51fe7366ec11d35",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to fetch last ID",
+        "func": "let measurement = flow.get('mappingValueMeasurement');\n\nmsg.query = 'SELECT * FROM ' \n            + measurement \n            + ' ' \n            + ' ORDER BY time DESC LIMIT 1';\nmsg.payload = null;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 350,
+        "y": 200,
+        "wires": [
+            [
+                "c2a58da7db7e676e"
+            ]
+        ]
+    },
+    {
+        "id": "02b51e986f0ea6ac",
+        "type": "http in",
+        "z": "3f5e27f1057c3b43",
+        "name": "Delete ID message",
+        "url": "/message/:id",
+        "method": "delete",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 170,
+        "y": 1860,
+        "wires": [
+            [
+                "8ab69efd93168f25",
+                "d8b5cc312e0a3f06"
+            ]
+        ]
+    },
+    {
+        "id": "da9bd18fd5224780",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to delete ID message",
+        "func": "let id = Number(msg.req.params.id);\nlet measurement = flow.get('messageMeasurement');\nlet query = 'WHERE \"id\" = ' + \"'\" + id + \"'\";\n\nmsg.query = 'DELETE FROM ' \n            + measurement \n            + ' ' \n            + query;\nmsg.payload = null;\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1340,
+        "y": 1860,
+        "wires": [
+            [
+                "56ab0c6dd72029ef"
+            ]
+        ]
+    },
+    {
+        "id": "a965ac667153cbd3",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "DELETE /message/:ID",
+        "info": "",
+        "x": 180,
+        "y": 1820,
+        "wires": []
+    },
+    {
+        "id": "b6e9073c375f0d50",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Check Result",
+        "func": "if (!msg.payload || msg.payload.length === 0) {\n    msg.statusCode = 200;\n    msg.payload = \"Message deleted successfully\";\n}\nelse {\n    msg.statusCode = 404;\n    msg.payload = \"Message not found\";\n}\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 2410,
+        "y": 1860,
+        "wires": [
+            [
+                "778f3436d5abc915"
+            ]
+        ]
+    },
+    {
+        "id": "778f3436d5abc915",
+        "type": "http response",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 2570,
+        "y": 1860,
+        "wires": []
+    },
+    {
+        "id": "56ab0c6dd72029ef",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 1600,
+        "y": 1860,
+        "wires": [
+            [
+                "7737a8c4acbf1aa0"
+            ]
+        ]
+    },
+    {
+        "id": "4ea0567aaf127113",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to select last value",
+        "func": "let measurement = flow.get('messageMeasurement');\nlet query = 'WHERE \"read\" = false'\n\nmsg.query = 'SELECT * FROM ' \n            + measurement \n            + ' ' \n            + query\n            + ' ORDER BY time DESC LIMIT 1';\n\nmsg.payload = null;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 630,
+        "y": 1620,
+        "wires": [
+            [
+                "20143ebbe1c27496"
+            ]
+        ]
+    },
+    {
+        "id": "3b8e9d4a31f7af6f",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Check Result [Empty, Msg]",
+        "func": "if (!msg.payload || msg.payload.length === 0) {\n    msg.statusCode = 204;\n    msg.payload = \"NO NEW MESSAGE\";\n    return [msg, null];  // Ruta 204\n}\n\nlet record = msg.payload[0];\nmsg.payload = {\n    \"id\": record.id,\n    \"message\": record.message,\n    \"type\": record.type,\n    \"tag\": record.tag,\n    \"time\": record.time,\n    \"read\": record.read\n};\nmsg.statusCode = 200;\nreturn [null, msg];\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1160,
+        "y": 1620,
+        "wires": [
+            [
+                "42c9008ebd592b5b"
+            ],
+            [
+                "bc6dbce68a46467f",
+                "42c9008ebd592b5b"
+            ]
+        ]
+    },
+    {
+        "id": "42c9008ebd592b5b",
+        "type": "http response",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1390,
+        "y": 1620,
+        "wires": []
+    },
+    {
+        "id": "bc6dbce68a46467f",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Setting \"read\" to True and parsing",
+        "func": "const data = msg.payload;\nconst message = data.message;\nconst type = data.type;\nconst tag = data.tag;\nconst id = data.id;\nconst timestamp = data.time ? new Date(data.time) : new Date();\nlet measurement = flow.get('messageMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"message\": message,\n        \"type\": type,\n        \"tag\": tag,\n        \"read\": true\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': timestamp.getTime()\n    //'timestamp': new Date().valueOf()\n}];\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1480,
+        "y": 1660,
+        "wires": [
+            [
+                "21a3eff861be5270"
+            ]
+        ]
+    },
+    {
+        "id": "8e8cdba3f0d4906e",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "GET /message/last",
+        "info": "",
+        "x": 610,
+        "y": 1580,
+        "wires": []
+    },
+    {
+        "id": "21a3eff861be5270",
+        "type": "influxdb batch",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "precision": "ms",
+        "retentionPolicy": "",
+        "name": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 1760,
+        "y": 1660,
+        "wires": []
+    },
+    {
+        "id": "20143ebbe1c27496",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 880,
+        "y": 1620,
+        "wires": [
+            [
+                "3b8e9d4a31f7af6f"
+            ]
+        ]
+    },
+    {
+        "id": "f66912ad363d9227",
+        "type": "http in",
+        "z": "3f5e27f1057c3b43",
+        "name": "Save New MappingValue",
+        "url": "/mappingValue",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 2720,
+        "wires": [
+            [
+                "7fae1bb032698ce0",
+                "5c6f0e7648047cea"
+            ]
+        ]
+    },
+    {
+        "id": "7fae1bb032698ce0",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to insert mappingValue",
+        "func": "let measurement = flow.get('mappingValueMeasurement');\nlet id = parseInt(flow.get('id_mappingValue'));\nlet data = msg.payload;\nlet distance = data.distance;\nlet angle = data.angle;\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"distance\": distance,\n        \"angle\": angle,\n        \"read\": false\n    },\n    tags: {\n        \"id\": id\n    },\n    //'timestamp': timestamp.getTime()\n    'timestamp': new Date().valueOf()\n}];\nflow.set('id_mappingValue', id + 1);\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 490,
+        "y": 2720,
+        "wires": [
+            [
+                "be54483e368f73b0",
+                "e2f47cb16360baea"
+            ]
+        ]
+    },
+    {
+        "id": "be54483e368f73b0",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Check Result [Empty, Msg]",
+        "func": "if (!msg.payload || msg.payload.length === 0) {\n    msg.statusCode = 400;\n    msg.payload = null;\n    return [msg, null];  // Ruta 204\n}\n\nlet record = msg.payload[0];\nmsg.payload = {\n    \"id\": record.tags.id,\n    \"distance\": record.fields.distance,\n    \"angle\": record.fields.angle,\n    \"time\": record.timestamp,\n    \"read\": record.fields.read \n};\nmsg.statusCode = 200;\nreturn [null, msg];",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 780,
+        "y": 2780,
+        "wires": [
+            [
+                "42290b067a074f8a"
+            ],
+            [
+                "42290b067a074f8a",
+                "35b933e9bf305932"
+            ]
+        ]
+    },
+    {
+        "id": "42290b067a074f8a",
+        "type": "http response",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1010,
+        "y": 2780,
+        "wires": []
+    },
+    {
+        "id": "6b6e362e281f08cf",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "POST /mappingValue",
+        "info": "",
+        "x": 180,
+        "y": 2680,
+        "wires": []
+    },
+    {
+        "id": "bb5381504118a278",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "mappingValueModel",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"id\":123,\"distance\":\"1200\",\"angle\":\"45\",\"read\":false}",
+        "payloadType": "json",
+        "x": 190,
+        "y": 2320,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "35b933e9bf305932",
+        "type": "mqtt out",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "topic": "mappingValue",
+        "qos": "1",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "78b50610a06c74af",
+        "x": 1040,
+        "y": 2820,
+        "wires": []
+    },
+    {
+        "id": "e2f47cb16360baea",
+        "type": "influxdb batch",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "precision": "ms",
+        "retentionPolicy": "",
+        "name": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 760,
+        "y": 2720,
+        "wires": []
+    },
+    {
+        "id": "1255e75c343b06f1",
+        "type": "http in",
+        "z": "3f5e27f1057c3b43",
+        "name": "Get ID mappingValue or Values",
+        "url": "/mappingValue/:id",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 210,
+        "y": 2360,
+        "wires": [
+            [
+                "404fdc9dd277b013",
+                "3a7a9f06244a238a"
+            ]
+        ]
+    },
+    {
+        "id": "50713b8e3dec231e",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to fetch ID mappingValue",
+        "func": "let id = Number(msg.req.params.id);\nlet measurement = flow.get('mappingValueMeasurement');\nlet query = 'WHERE \"id\" = ' + \"'\" + id + \"'\";\n\nmsg.query = 'SELECT * FROM ' \n            + measurement \n            + ' ' \n            + query\n            + ' ORDER BY time DESC LIMIT 1';\nmsg.payload = null;\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 710,
+        "y": 2480,
+        "wires": [
+            [
+                "264f0b17cdda9d2e"
+            ]
+        ]
+    },
+    {
+        "id": "4ee38920fc9c23a5",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "GET /mappingValue/:ID",
+        "info": "",
+        "x": 680,
+        "y": 2440,
+        "wires": []
+    },
+    {
+        "id": "339a12c5443f9fe2",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Check Result [Empty, Msg]",
+        "func": "if (!msg.payload || msg.payload.length === 0) {\n    msg.statusCode = 404;\n    msg.payload = \"mappingValue not found with id\";\n    return [msg, null];  // Ruta 404\n}\n\nlet record = msg.payload[0];\nmsg.payload = {\n    \"id\": record.id,\n    \"distance\": record.distance,\n    \"angle\": record.angle,\n    \"time\": record.time,\n    \"read\": record.read \n};\nmsg.statusCode = 200;\nreturn [null, msg];\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1240,
+        "y": 2480,
+        "wires": [
+            [
+                "1569fc796df1cbcd"
+            ],
+            [
+                "81a54c83701765e0",
+                "1569fc796df1cbcd"
+            ]
+        ]
+    },
+    {
+        "id": "1569fc796df1cbcd",
+        "type": "http response",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1470,
+        "y": 2480,
+        "wires": []
+    },
+    {
+        "id": "81a54c83701765e0",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Setting \"read\" to True and parsing",
+        "func": "const data = msg.payload;\nconst distance = data.distance;\nconst angle = data.angle;\nconst id = data.id;\nconst timestamp = data.time ? new Date(data.time) : new Date();\nlet measurement = flow.get('mappingValueMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"distance\": distance,\n        \"angle\": angle,\n        \"read\": true\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': timestamp.getTime()\n}];\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1560,
+        "y": 2520,
+        "wires": [
+            [
+                "5b458fb0dc81b554"
+            ]
+        ]
+    },
+    {
+        "id": "5b458fb0dc81b554",
+        "type": "influxdb batch",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "precision": "ms",
+        "retentionPolicy": "",
+        "name": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 1840,
+        "y": 2520,
+        "wires": []
+    },
+    {
+        "id": "264f0b17cdda9d2e",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 980,
+        "y": 2480,
+        "wires": [
+            [
+                "339a12c5443f9fe2"
+            ]
+        ]
+    },
+    {
+        "id": "d475caf71c8fc25b",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "MappingValue Flow‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ",
+        "info": "",
+        "x": 900,
+        "y": 2260,
+        "wires": []
+    },
+    {
+        "id": "f0f8e0f6146fa42e",
+        "type": "http in",
+        "z": "3f5e27f1057c3b43",
+        "name": "Delete ID mappingValue",
+        "url": "/mappingValue/:id",
+        "method": "delete",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 190,
+        "y": 2600,
+        "wires": [
+            [
+                "7d2380563d3a4dd3",
+                "038dc3dd488d1c12"
+            ]
+        ]
+    },
+    {
+        "id": "79bd788d3840be0d",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "DELETE /mappingValue/:ID",
+        "info": "",
+        "x": 200,
+        "y": 2560,
+        "wires": []
+    },
+    {
+        "id": "5f43fa1186268c95",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to select all unread values",
+        "func": "let measurement = flow.get('mappingValueMeasurement');\nlet query = 'WHERE \"read\" = false'\n\nmsg.query = 'SELECT * FROM ' \n            + measurement \n            + ' ' \n            + query\n            + ' ORDER BY time ASC';\n\nmsg.payload = null;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 720,
+        "y": 2360,
+        "wires": [
+            [
+                "b70afee55ad29e2b"
+            ]
+        ]
+    },
+    {
+        "id": "eb4b546de22e5187",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Check Result [Empty, Msg]",
+        "func": "if (!msg.payload || msg.payload.length === 0) {\n    msg.statusCode = 204;\n    msg.payload = \"NO NEW MAPPINGVALUE\";\n    return [msg, null];  // Ruta 204\n}\n\nlet record = [];\nmsg.payload.forEach( function(data) {\n    record.push({\n        \"id\": data.id,\n        \"distance\": data.distance,\n        \"angle\": data.angle,\n        \"time\": data.time,\n        \"read\": data.read    \n    })\n});\n\nmsg.payload = record;\nmsg.statusCode = 200;\nreturn [null, msg];\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1260,
+        "y": 2360,
+        "wires": [
+            [
+                "960a1e386d68e929"
+            ],
+            [
+                "0b767bcbc751a180",
+                "960a1e386d68e929"
+            ]
+        ]
+    },
+    {
+        "id": "960a1e386d68e929",
+        "type": "http response",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1490,
+        "y": 2360,
+        "wires": []
+    },
+    {
+        "id": "0b767bcbc751a180",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Setting \"read\" to True and parsing",
+        "func": "let measurement = flow.get('mappingValueMeasurement');\n\nlet resul = []\n\nmsg.payload.forEach(function(data) {\n    const timestamp = data.time ? new Date(data.time) : new Date();\n    resul.push({\n        measurement: measurement,\n        fields: {\n            \"distance\": data.distance,\n            \"angle\": data.angle,\n            \"read\": true\n        },\n        tags: {\n            \"id\": data.id\n        },\n        'timestamp': timestamp.getTime()\n    });\n});\n\nmsg.payload = resul;\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1580,
+        "y": 2400,
+        "wires": [
+            [
+                "b01c548e3a91e7ab"
+            ]
+        ]
+    },
+    {
+        "id": "909b6625480fc5ea",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "GET /mappingValue/values",
+        "info": "",
+        "x": 690,
+        "y": 2320,
+        "wires": []
+    },
+    {
+        "id": "b01c548e3a91e7ab",
+        "type": "influxdb batch",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "precision": "ms",
+        "retentionPolicy": "",
+        "name": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 1860,
+        "y": 2400,
+        "wires": []
+    },
+    {
+        "id": "b70afee55ad29e2b",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 1000,
+        "y": 2360,
+        "wires": [
+            [
+                "eb4b546de22e5187"
+            ]
+        ]
+    },
+    {
+        "id": "692846f3214423b2",
+        "type": "mqtt in",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "topic": "Battery",
+        "qos": "1",
+        "datatype": "auto-detect",
+        "broker": "78b50610a06c74af",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 130,
+        "y": 700,
+        "wires": [
+            [
+                "d9e5076ec9ee653d",
+                "2caaf8a5bc22b19b"
+            ]
+        ]
+    },
+    {
+        "id": "d9e5076ec9ee653d",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to insert new Battery",
+        "func": "const level = msg.payload.level;\nconst id = flow.get('id_battery') || 0;\nconst measurement = flow.get('batteryMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"level\": parseInt(level),\n        \"read\": false,\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': new Date().valueOf()\n}];\n\nflow.set('id_battery', id + 1);\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 700,
+        "wires": [
+            [
+                "7b2b09ee01ea1a51"
+            ]
+        ]
+    },
+    {
+        "id": "d25969c2e31dbc53",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "props": [],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 150,
+        "y": 80,
+        "wires": [
+            [
+                "63979f88a1e0e531"
+            ]
+        ]
+    },
+    {
+        "id": "ce07e877b4cf6bd0",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Get last ID from Battery DB",
+        "func": "(msg.payload[0] != null)\n? flow.set('id_battery', parseInt(msg.payload[0].id) + 1)\n: flow.set('id_battery', parseInt(0));\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 870,
+        "y": 80,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "7a2abf8c1dac2979",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "Battery Measurement",
+        "query": "",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 590,
+        "y": 80,
+        "wires": [
+            [
+                "ce07e877b4cf6bd0"
+            ]
+        ]
+    },
+    {
+        "id": "63979f88a1e0e531",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to fetch last ID",
+        "func": "let measurement = flow.get('batteryMeasurement');\n\nmsg.query = 'SELECT * FROM ' \n            + measurement \n            + ' ' \n            + ' ORDER BY time DESC LIMIT 1';\nmsg.payload = null;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 350,
+        "y": 80,
+        "wires": [
+            [
+                "7a2abf8c1dac2979"
+            ]
+        ]
+    },
+    {
+        "id": "7b2b09ee01ea1a51",
+        "type": "influxdb batch",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "precision": "ms",
+        "retentionPolicy": "",
+        "name": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 620,
+        "y": 700,
+        "wires": []
+    },
+    {
+        "id": "17ffeee159b76791",
+        "type": "mqtt in",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "topic": "Messages",
+        "qos": "1",
+        "datatype": "auto-detect",
+        "broker": "78b50610a06c74af",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 140,
+        "y": 2140,
+        "wires": [
+            [
+                "e5141a4245689159",
+                "94a9d1f60d02724c"
+            ]
+        ]
+    },
+    {
+        "id": "e5141a4245689159",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to insert new Message",
+        "func": "const message = msg.payload.message;\nconst type = msg.payload.type;\nconst tag = msg.payload.tag;\nconst id = flow.get('id_message') || 0;\nconst measurement = flow.get('messageMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"message\": message,\n        \"type\": type,\n        \"tag\": tag,\n        \"read\": false\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': new Date().valueOf()\n}];\n\nflow.set('id_message', id + 1);\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 380,
+        "y": 2140,
+        "wires": [
+            [
+                "194c58418ddf970d"
+            ]
+        ]
+    },
+    {
+        "id": "194c58418ddf970d",
+        "type": "influxdb batch",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "precision": "ms",
+        "retentionPolicy": "",
+        "name": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 640,
+        "y": 2140,
+        "wires": []
+    },
+    {
+        "id": "bc609768d415e325",
+        "type": "mqtt in",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "topic": "Mapping",
+        "qos": "1",
+        "datatype": "auto-detect",
+        "broker": "78b50610a06c74af",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 140,
+        "y": 2880,
+        "wires": [
+            [
+                "1ab4c2115ec38134",
+                "69fb330250d412e5"
+            ]
+        ]
+    },
+    {
+        "id": "1ab4c2115ec38134",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to insert new MappingValue",
+        "func": "const distance = msg.payload.distance;\nconst angle = msg.payload.angle;\nconst id = flow.get('id_mappingValue') || 0;\nlet measurement = flow.get('mappingValueMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"distance\": parseInt(distance),\n        \"angle\": parseFloat(angle),\n        \"read\": false\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': new Date().valueOf()\n}];\n\nflow.set('id_mappingValue', id + 1);\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 400,
+        "y": 2880,
+        "wires": [
+            [
+                "4aeb74f3d2f64d29"
+            ]
+        ]
+    },
+    {
+        "id": "4aeb74f3d2f64d29",
+        "type": "influxdb batch",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "precision": "ms",
+        "retentionPolicy": "",
+        "name": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 680,
+        "y": 2880,
+        "wires": []
+    },
+    {
+        "id": "ee51d67cd8a15a88",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "<- Envía al Robot",
+        "info": "",
+        "x": 1310,
+        "y": 1380,
+        "wires": []
+    },
+    {
+        "id": "cc0c1fd31d9c8545",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "<- Envía al Robot",
+        "info": "",
+        "x": 1100,
+        "y": 2080,
+        "wires": []
+    },
+    {
+        "id": "f6b3fd3f78d77a0f",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "<- Envía al Robot",
+        "info": "",
+        "x": 1220,
+        "y": 2820,
+        "wires": []
+    },
+    {
+        "id": "479e4e56c9e02e0a",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "MQTT Example",
+        "info": "Mapping {\"distance\":\"322\",\"angle\":\"-241\"}\nMapping {\"distance\":\"331\",\"angle\":\"-248\"}\nMapping {\"distance\":\"334\",\"angle\":\"-254\"}\nMapping {\"distance\":\"327\",\"angle\":\"-261\"}\nMessages {\"tag\":\"BATTERY\",\"type\":\"WARNING\",\"message\":\"Voltage out of expected range\"}\nBattery {\"level\":\"0\"}\n",
+        "x": 860,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "046b78848105d1d7",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Last or ID",
+        "func": "if (msg.req.params.id === \"last\") {\n    return [msg, null];\n}\n\nif (!isNaN(msg.req.params.id)) {\n    return [null, msg];\n}\n\nreturn [null, null];\n\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 920,
+        "wires": [
+            [
+                "df50fd53ca57ffe0"
+            ],
+            [
+                "83ea826f8e95d5a6"
+            ]
+        ]
+    },
+    {
+        "id": "933dbbcd159a80c6",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Last or ID",
+        "func": "if (msg.req.params.id === \"last\") {\n    return [msg, null];\n}\n\nif (!isNaN(msg.req.params.id)) {\n    return [null, msg];\n}\n\nreturn [null, null];\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 400,
+        "y": 1620,
+        "wires": [
+            [
+                "4ea0567aaf127113"
+            ],
+            [
+                "5dad464dd0a04ad1"
+            ]
+        ]
+    },
+    {
+        "id": "7737a8c4acbf1aa0",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to check if it was properly deleted",
+        "func": "let query = msg.query.split(\" \");\nquery[0] = \"SELECT *\";\nmsg.query = query.join(\" \");\nreturn msg",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1900,
+        "y": 1860,
+        "wires": [
+            [
+                "7d9db0bed61de585"
+            ]
+        ]
+    },
+    {
+        "id": "7d9db0bed61de585",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 2200,
+        "y": 1860,
+        "wires": [
+            [
+                "b6e9073c375f0d50"
+            ]
+        ]
+    },
+    {
+        "id": "a7ddedeb0505f4c4",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 780,
+        "y": 1860,
+        "wires": [
+            [
+                "5d5d9586f05c3c64"
+            ]
+        ]
+    },
+    {
+        "id": "5d5d9586f05c3c64",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Check Result [Empty, Msg]",
+        "func": "if (!msg.payload || msg.payload.length === 0) {\n    msg.statusCode = 404;\n    msg.payload = \"Message not found\";\n    return [null, msg];  // Ruta 404\n}\nreturn [msg, null];\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1040,
+        "y": 1860,
+        "wires": [
+            [
+                "da9bd18fd5224780"
+            ],
+            [
+                "8f2c3ab6bc6c0027"
+            ]
+        ]
+    },
+    {
+        "id": "8f2c3ab6bc6c0027",
+        "type": "http response",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1270,
+        "y": 1900,
+        "wires": []
+    },
+    {
+        "id": "8ab69efd93168f25",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to ensure it exists in the first place",
+        "func": "let id = Number(msg.req.params.id);\nlet measurement = flow.get('messageMeasurement');\nlet query = 'WHERE \"id\" = ' + \"'\" + id + \"'\";\n\nmsg.query = 'SELECT * FROM '\n    + measurement\n    + ' '\n    + query;\nmsg.payload = null;\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 480,
+        "y": 1860,
+        "wires": [
+            [
+                "a7ddedeb0505f4c4"
+            ]
+        ]
+    },
+    {
+        "id": "bbbd3a73fb6f511c",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to delete ID instruction",
+        "func": "let id = Number(msg.req.params.id);\nlet measurement = flow.get('instructionMeasurement');\nlet query = 'WHERE \"id\" = ' + \"'\" + id + \"'\";\n\nmsg.query = 'DELETE FROM ' \n            + measurement \n            + ' ' \n            + query;\nmsg.payload = null;\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1340,
+        "y": 1160,
+        "wires": [
+            [
+                "cbcde651a95fc3be"
+            ]
+        ]
+    },
+    {
+        "id": "cbcde651a95fc3be",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 1600,
+        "y": 1160,
+        "wires": [
+            [
+                "c60c5b6082f5cd3a"
+            ]
+        ]
+    },
+    {
+        "id": "6d4b199e0c06ba37",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to ensure it exists in the first place",
+        "func": "let id = Number(msg.req.params.id);\nlet measurement = flow.get('instructionMeasurement');\nlet query = 'WHERE \"id\" = ' + \"'\" + id + \"'\";\n\nmsg.query = 'SELECT * FROM '\n    + measurement\n    + ' '\n    + query;\nmsg.payload = null;\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 480,
+        "y": 1160,
+        "wires": [
+            [
+                "6e38aab0527d1770"
+            ]
+        ]
+    },
+    {
+        "id": "6e38aab0527d1770",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 780,
+        "y": 1160,
+        "wires": [
+            [
+                "99de98ece1f5ace7"
+            ]
+        ]
+    },
+    {
+        "id": "99de98ece1f5ace7",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Check Result [Empty, Msg]",
+        "func": "if (!msg.payload || msg.payload.length === 0) {\n    msg.statusCode = 404;\n    msg.payload = \"Instruction not found\";\n    return [null, msg];  // Ruta 404\n}\nreturn [msg, null];\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1040,
+        "y": 1160,
+        "wires": [
+            [
+                "bbbd3a73fb6f511c"
+            ],
+            [
+                "63bee9dc04726c79"
+            ]
+        ]
+    },
+    {
+        "id": "63bee9dc04726c79",
+        "type": "http response",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1270,
+        "y": 1200,
+        "wires": []
+    },
+    {
+        "id": "baf7a5eeec9c2bb0",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Check Result",
+        "func": "if (!msg.payload || msg.payload.length === 0) {\n    msg.statusCode = 200;\n    msg.payload = \"Instruction deleted successfully\";\n}\nelse {\n    msg.statusCode = 404;\n    msg.payload = \"Instruction not found\";\n}\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 2410,
+        "y": 1160,
+        "wires": [
+            [
+                "67438e8b0b479d32"
+            ]
+        ]
+    },
+    {
+        "id": "67438e8b0b479d32",
+        "type": "http response",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 2570,
+        "y": 1160,
+        "wires": []
+    },
+    {
+        "id": "c60c5b6082f5cd3a",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to check if it was properly deleted",
+        "func": "let query = msg.query.split(\" \");\nquery[0] = \"SELECT *\";\nmsg.query = query.join(\" \");\nreturn msg",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1900,
+        "y": 1160,
+        "wires": [
+            [
+                "597dbb22494bc404"
+            ]
+        ]
+    },
+    {
+        "id": "597dbb22494bc404",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 2200,
+        "y": 1160,
+        "wires": [
+            [
+                "baf7a5eeec9c2bb0"
+            ]
+        ]
+    },
+    {
+        "id": "519e551f8fee46e1",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to delete ID mappingValue",
+        "func": "let id = Number(msg.req.params.id);\nlet measurement = flow.get('mappingValueMeasurement');\nlet query = 'WHERE \"id\" = ' + \"'\" + id + \"'\";\n\nmsg.query = 'DELETE FROM ' \n            + measurement \n            + ' ' \n            + query;\nmsg.payload = null;\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1400,
+        "y": 2600,
+        "wires": [
+            [
+                "690f75ff4b66f913"
+            ]
+        ]
+    },
+    {
+        "id": "690f75ff4b66f913",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 1680,
+        "y": 2600,
+        "wires": [
+            [
+                "1124b462c404cd7e"
+            ]
+        ]
+    },
+    {
+        "id": "7d2380563d3a4dd3",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to ensure it exists in the first place",
+        "func": "let id = Number(msg.req.params.id);\nlet measurement = flow.get('mappingValueMeasurement');\nlet query = 'WHERE \"id\" = ' + \"'\" + id + \"'\";\n\nmsg.query = 'SELECT * FROM '\n    + measurement\n    + ' '\n    + query;\nmsg.payload = null;\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 520,
+        "y": 2600,
+        "wires": [
+            [
+                "8fabd61728a09796"
+            ]
+        ]
+    },
+    {
+        "id": "8fabd61728a09796",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 820,
+        "y": 2600,
+        "wires": [
+            [
+                "2359831df418d094"
+            ]
+        ]
+    },
+    {
+        "id": "2359831df418d094",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Check Result [Empty, Msg]",
+        "func": "if (!msg.payload || msg.payload.length === 0) {\n    msg.statusCode = 404;\n    msg.payload = \"Mapping value not found\";\n    return [null, msg];  // Ruta 404\n}\nreturn [msg, null];\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1080,
+        "y": 2600,
+        "wires": [
+            [
+                "519e551f8fee46e1"
+            ],
+            [
+                "289e749bbb81d7ce"
+            ]
+        ]
+    },
+    {
+        "id": "289e749bbb81d7ce",
+        "type": "http response",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1310,
+        "y": 2640,
+        "wires": []
+    },
+    {
+        "id": "35972d473d1f4bb9",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Check Result",
+        "func": "if (!msg.payload || msg.payload.length === 0) {\n    msg.statusCode = 200;\n    msg.payload = \"Mapping value deleted successfully\";\n}\nelse {\n    msg.statusCode = 404;\n    msg.payload = \"Mapping value not found\";\n}\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 2490,
+        "y": 2600,
+        "wires": [
+            [
+                "e38bd4e9b5d39ea7"
+            ]
+        ]
+    },
+    {
+        "id": "e38bd4e9b5d39ea7",
+        "type": "http response",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 2650,
+        "y": 2600,
+        "wires": []
+    },
+    {
+        "id": "1124b462c404cd7e",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to check if it was properly deleted",
+        "func": "let query = msg.query.split(\" \");\nquery[0] = \"SELECT *\";\nmsg.query = query.join(\" \");\nreturn msg",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1980,
+        "y": 2600,
+        "wires": [
+            [
+                "7dfa22f8a15b8fa4"
+            ]
+        ]
+    },
+    {
+        "id": "7dfa22f8a15b8fa4",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 2280,
+        "y": 2600,
+        "wires": [
+            [
+                "35972d473d1f4bb9"
+            ]
+        ]
+    },
+    {
+        "id": "404fdc9dd277b013",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Values or ID",
+        "func": "if (msg.req.params.id === \"values\") {\n    return [msg, null];\n}\n\nif (!isNaN(msg.req.params.id)) {\n    return [null, msg];\n} \n\nreturn [null, null];",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 2360,
+        "wires": [
+            [
+                "5f43fa1186268c95"
+            ],
+            [
+                "50713b8e3dec231e"
+            ]
+        ]
+    },
+    {
+        "id": "5eaf96ea68021271",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "MQTT Tests‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ",
+        "info": "",
+        "x": 900,
+        "y": 3000,
+        "wires": []
+    },
+    {
+        "id": "5bc72d49f8fee3a0",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "Message",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"tag\":\"BATTERY\",\"type\":\"WARNING\",\"message\":\"Voltage out of expected range\"}",
+        "payloadType": "json",
+        "x": 120,
+        "y": 3120,
+        "wires": [
+            [
+                "69bd80992927131b"
+            ]
+        ]
+    },
+    {
+        "id": "3b4ad08ec84c2383",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "Battery",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"level\":\"0\"}",
+        "payloadType": "json",
+        "x": 110,
+        "y": 3060,
+        "wires": [
+            [
+                "7f2ed9ca8e69899c"
+            ]
+        ]
+    },
+    {
+        "id": "d066dde163f2af58",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "Mapping",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"distance\":\"322\",\"angle\":\"-241\"}",
+        "payloadType": "json",
+        "x": 120,
+        "y": 3180,
+        "wires": [
+            [
+                "24c5930338d3c02b"
+            ]
+        ]
+    },
+    {
+        "id": "7f2ed9ca8e69899c",
+        "type": "mqtt out",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "topic": "Battery",
+        "qos": "1",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "78b50610a06c74af",
+        "x": 340,
+        "y": 3060,
+        "wires": []
+    },
+    {
+        "id": "24c5930338d3c02b",
+        "type": "mqtt out",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "topic": "Mapping",
+        "qos": "1",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "78b50610a06c74af",
+        "x": 340,
+        "y": 3180,
+        "wires": []
+    },
+    {
+        "id": "69bd80992927131b",
+        "type": "mqtt out",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "topic": "Messages",
+        "qos": "1",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "78b50610a06c74af",
+        "x": 350,
+        "y": 3120,
+        "wires": []
+    },
+    {
+        "id": "5b89ea0037cb0e87",
+        "type": "debug",
+        "z": "3f5e27f1057c3b43",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 380,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "2caaf8a5bc22b19b",
+        "type": "debug",
+        "z": "3f5e27f1057c3b43",
+        "name": "debug 2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 310,
+        "y": 740,
+        "wires": []
+    },
+    {
+        "id": "88295686fc184715",
+        "type": "debug",
+        "z": "3f5e27f1057c3b43",
+        "name": "debug 3",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 420,
+        "y": 960,
+        "wires": []
+    },
+    {
+        "id": "a30d72ed81b2368d",
+        "type": "debug",
+        "z": "3f5e27f1057c3b43",
+        "name": "debug 4",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 380,
+        "y": 1200,
+        "wires": []
+    },
+    {
+        "id": "f7986180aacf65ef",
+        "type": "debug",
+        "z": "3f5e27f1057c3b43",
+        "name": "debug 5",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 400,
+        "y": 1320,
+        "wires": []
+    },
+    {
+        "id": "23f95b04b3aeb79e",
+        "type": "debug",
+        "z": "3f5e27f1057c3b43",
+        "name": "debug 6",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 400,
+        "y": 1660,
+        "wires": []
+    },
+    {
+        "id": "d8b5cc312e0a3f06",
+        "type": "debug",
+        "z": "3f5e27f1057c3b43",
+        "name": "debug 7",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 380,
+        "y": 1900,
+        "wires": []
+    },
+    {
+        "id": "e98aae336a3082ac",
+        "type": "debug",
+        "z": "3f5e27f1057c3b43",
+        "name": "debug 8",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 380,
+        "y": 2020,
+        "wires": []
+    },
+    {
+        "id": "94a9d1f60d02724c",
+        "type": "debug",
+        "z": "3f5e27f1057c3b43",
+        "name": "debug 9",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 320,
+        "y": 2180,
+        "wires": []
+    },
+    {
+        "id": "3a7a9f06244a238a",
+        "type": "debug",
+        "z": "3f5e27f1057c3b43",
+        "name": "debug 10",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 460,
+        "y": 2400,
+        "wires": []
+    },
+    {
+        "id": "038dc3dd488d1c12",
+        "type": "debug",
+        "z": "3f5e27f1057c3b43",
+        "name": "debug 11",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 420,
+        "y": 2640,
+        "wires": []
+    },
+    {
+        "id": "5c6f0e7648047cea",
+        "type": "debug",
+        "z": "3f5e27f1057c3b43",
+        "name": "debug 12",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 420,
+        "y": 2760,
+        "wires": []
+    },
+    {
+        "id": "69fb330250d412e5",
+        "type": "debug",
+        "z": "3f5e27f1057c3b43",
+        "name": "debug 13",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 330,
+        "y": 2920,
+        "wires": []
+    },
+    {
+        "id": "24173216806e5972",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "props": [],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 150,
+        "y": 400,
+        "wires": [
+            [
+                "2bf55e2cdb97a8de"
+            ]
+        ]
+    },
+    {
+        "id": "2bf55e2cdb97a8de",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Set robotID",
+        "func": "flow.set('robotID', 2);\nreturn null;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 320,
+        "y": 400,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "d27228793a962ad7",
+        "type": "mqtt out",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "topic": "movimientos",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "9eebed49fee1d835",
+        "x": 1430,
+        "y": 1440,
+        "wires": []
+    },
+    {
+        "id": "3330a6902c4c5743",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Sending echo to NodoEdge",
+        "func": "const map = new Map([\n    [\"Forward\", \"adelante\"],\n    [\"Backward\", \"atras\"],\n    [\"Rotate Left\", \"izquierda\"],\n    [\"Rotate Right\", \"derecha\"],\n    [\"Brake\", \"parar\"],\n])\n\nmsg.payload = {\n    Task: map.get(msg.payload.instruction),\n    id_nodoEdge: msg.id_nodoEdge,\n    robotID: flow.get('robotID') || 2\n}\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1200,
+        "y": 1440,
+        "wires": [
+            [
+                "d27228793a962ad7"
+            ]
+        ]
+    },
+    {
+        "id": "09e9f17a5dadfa10",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Brake Timer",
+        "func": "// --- Configuración -----------------------------\nconst TIMEOUT_MS = 10 * 1000;     // 10 s de inactividad\nconst CTX_KEY = \"inactivity\";  // dónde guardamos el handle\n// ----------------------------------------------\n\n// 1) Cancelo el temporizador anterior (si existía)\nlet h = context.get(CTX_KEY);\nif (h) { clearTimeout(h); }\n\n// 2) Creo un nuevo temporizador\nh = setTimeout(() => {\n    // Enviamos el aviso.  `node.send` es seguro incluso\n    // fuera del retorno principal.\n    node.send({\n        payload: {\n            instruction: \"Brake\",\n        },\n        id_nodoEdge: -1\n    }\n    );\n}, TIMEOUT_MS);\n\n// 3) Guardo el handle para la próxima ejecución\ncontext.set(CTX_KEY, h);\n\n// 4) Devuelvo el mensaje original sin tocarlo\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 970,
+        "y": 1380,
+        "wires": [
+            [
+                "58f7aebc55d43a05",
+                "3330a6902c4c5743"
+            ]
+        ]
+    },
+    {
+        "id": "78b50610a06c74af",
+        "type": "mqtt-broker",
+        "name": "Robot 2 Brocker",
+        "broker": "localhost",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "f8f64e7f160f84a8",
+        "type": "influxdb",
+        "hostname": "127.0.0.1",
+        "port": "8086",
+        "protocol": "http",
+        "database": "test_LiDAR",
+        "name": "LiDAR_database",
+        "usetls": false,
+        "tls": "",
+        "influxdbVersion": "1.x",
+        "url": "http://localhost:8086",
+        "rejectUnauthorized": true
+    },
+    {
+        "id": "9eebed49fee1d835",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "localhost",
+        "port": "1884",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    }
+]
