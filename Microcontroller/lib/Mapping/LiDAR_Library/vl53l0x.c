@@ -25,6 +25,7 @@
 #include "esp_timer.h"
 #include "driver/gpio.h"
 #include "freertos/queue.h"
+#include <string.h>
 
 
 #define REG_IDENTIFICATION_MODEL_ID (0xC0)
@@ -826,18 +827,6 @@ static struct {
     uint32_t error_count;
 } vl53l0x_state[3] = {0}; // Support up to 3 sensors
 
-// Timing budget conversion factors
-static const struct {
-    uint8_t enables;
-    uint8_t timeouts;
-    uint16_t start_overhead;
-    uint16_t end_overhead;
-} timing_sequences[] = {
-    [0] = {RANGE_SEQUENCE_STEP_DSS + RANGE_SEQUENCE_STEP_PRE_RANGE + RANGE_SEQUENCE_STEP_FINAL_RANGE, 0, 320, 960},
-    [1] = {RANGE_SEQUENCE_STEP_TCC + RANGE_SEQUENCE_STEP_DSS + RANGE_SEQUENCE_STEP_PRE_RANGE + RANGE_SEQUENCE_STEP_FINAL_RANGE, 0, 320, 960},
-    [2] = {RANGE_SEQUENCE_STEP_TCC + RANGE_SEQUENCE_STEP_MSRC + RANGE_SEQUENCE_STEP_DSS + RANGE_SEQUENCE_STEP_PRE_RANGE + RANGE_SEQUENCE_STEP_FINAL_RANGE, 0, 320, 960}
-};
-
 // Internal helper functions
 static bool get_sequence_step_enables(uint8_t *enables);
 static bool get_sequence_step_timeouts(uint8_t *timeouts);
@@ -861,7 +850,7 @@ esp_err_t vl53l0x_set_timing_budget(vl53l0x_idx_t idx, vl53l0x_timing_budget_t b
     }
 
     if (budget_us < 15000 || budget_us > 100000) {
-        ESP_LOGE(TAG, "Invalid timing budget: %lu us", budget_us);
+        ESP_LOGE(TAG, "Invalid timing budget: %u us", budget_us);
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -871,7 +860,7 @@ esp_err_t vl53l0x_set_timing_budget(vl53l0x_idx_t idx, vl53l0x_timing_budget_t b
     }
 
     vl53l0x_state[idx].timing_budget_us = budget_us;
-    ESP_LOGI(TAG, "Timing budget set to %lu us", budget_us);
+    ESP_LOGI(TAG, "Timing budget set to %u us", budget_us);
     return ESP_OK;
 }
 

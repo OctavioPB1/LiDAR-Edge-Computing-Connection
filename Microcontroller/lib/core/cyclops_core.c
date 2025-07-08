@@ -28,7 +28,7 @@
 #include "ap_server.h"
 #include "lights.h"
 #include "mqtt_server.h"
-#include "mapping.h"
+#include "../Mapping/LiDAR_Library/mapping.h"
 #include "heap_trace_helper.h"
 #include "debug_helper.h"
 #include "client_mode.h"

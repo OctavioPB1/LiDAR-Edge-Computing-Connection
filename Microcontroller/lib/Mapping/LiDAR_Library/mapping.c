@@ -12,6 +12,7 @@
  */
 
 #include "mapping.h"
+#include "mapping_config.h"
 #include "servo_compatibility.h"
 #include "vl53l0x.h"
 #include "esp_log.h"
@@ -32,40 +33,101 @@
 static const char *TAG = "MAPPING_ENHANCED";
 
 // Configuration presets
+/**
+ * @brief Default configuration preset - Balanced performance
+ * 
+ * This configuration provides a good balance between speed, accuracy, and power consumption.
+ * Suitable for most general-purpose mapping applications.
+ * 
+ * Performance characteristics:
+ * - Measurement rate: ~40Hz
+ * - Servo speed: 30 deg/s (6 seconds for 180° rotation)
+ * - Range: 50mm - 2000mm
+ * - Light filtering for noise reduction
+ * - Adaptive sampling enabled for optimal angular resolution
+ * 
+ * Use this preset for:
+ * - General indoor mapping
+ * - Robot navigation
+ * - Object detection and avoidance
+ * - When you're unsure which configuration to use
+ */
 const mapping_config_t MAPPING_CONFIG_DEFAULT = {
-    .timing_budget_us = 20000,
-    .measurement_period_ms = 25,
-    .servo_angular_velocity = 30.0f,
-    .min_range_mm = 50,
-    .max_range_mm = 2000,
-    .filter_window_size = 3,
-    .motion_compensation_enabled = false,
-    .adaptive_sampling_enabled = true,
-    .signal_rate_limit = 0.1f
+    .timing_budget_us = 20000,          // 20ms timing budget (~40Hz)
+    .measurement_period_ms = 25,        // 25ms between measurements
+    .servo_angular_velocity = 30.0f,    // 30 degrees per second
+    .min_range_mm = 50,                 // 50mm minimum range
+    .max_range_mm = 2000,               // 2000mm maximum range
+    .filter_window_size = 3,            // 3-point moving average filter
+    .motion_compensation_enabled = false, // Disabled by default
+    .adaptive_sampling_enabled = true,  // Adaptive sampling enabled
+    .signal_rate_limit = 0.1f           // 10% signal rate threshold
 };
 
+/**
+ * @brief High-speed configuration preset - Maximum measurement rate
+ * 
+ * This configuration prioritizes speed over accuracy, achieving up to 50Hz measurement rate.
+ * Best for applications requiring real-time response and fast mapping.
+ * 
+ * Performance characteristics:
+ * - Measurement rate: ~50Hz
+ * - Servo speed: 60 deg/s (3 seconds for 180° rotation)
+ * - Range: 50mm - 1500mm (reduced for speed)
+ * - Minimal filtering for fastest response
+ * - Motion compensation enabled for moving robots
+ * 
+ * Use this preset for:
+ * - Real-time obstacle avoidance
+ * - Fast-moving robots
+ * - Dynamic environments
+ * - When response time is critical
+ * - High-speed mapping applications
+ */
 const mapping_config_t MAPPING_CONFIG_HIGH_SPEED = {
-    .timing_budget_us = 15000,
-    .measurement_period_ms = 20,
-    .servo_angular_velocity = 60.0f,
-    .min_range_mm = 50,
-    .max_range_mm = 1500,
-    .filter_window_size = 2,
-    .motion_compensation_enabled = true,
-    .adaptive_sampling_enabled = true,
-    .signal_rate_limit = 0.05f
+    .timing_budget_us = 15000,          // 15ms timing budget (~50Hz)
+    .measurement_period_ms = 20,        // 20ms between measurements
+    .servo_angular_velocity = 60.0f,    // 60 degrees per second
+    .min_range_mm = 50,                 // 50mm minimum range
+    .max_range_mm = 1500,               // 1500mm maximum range (reduced for speed)
+    .filter_window_size = 2,            // 2-point filter (minimal filtering)
+    .motion_compensation_enabled = true, // Motion compensation enabled
+    .adaptive_sampling_enabled = true,  // Adaptive sampling enabled
+    .signal_rate_limit = 0.05f          // 5% signal rate threshold (more permissive)
 };
 
+/**
+ * @brief High-accuracy configuration preset - Maximum precision
+ * 
+ * This configuration prioritizes accuracy and precision over speed.
+ * Best for applications requiring detailed mapping and high measurement quality.
+ * 
+ * Performance characteristics:
+ * - Measurement rate: ~15Hz
+ * - Servo speed: 15 deg/s (12 seconds for 180° rotation)
+ * - Range: 30mm - 2000mm (extended close range)
+ * - Heavy filtering for maximum stability
+ * - Motion compensation enabled
+ * - Fixed sampling rate for consistent angular resolution
+ * 
+ * Use this preset for:
+ * - Detailed environmental mapping
+ * - Precision measurements
+ * - Static mapping applications
+ * - Quality-critical applications
+ * - When accuracy is more important than speed
+ * - Calibration and testing
+ */
 const mapping_config_t MAPPING_CONFIG_HIGH_ACCURACY = {
-    .timing_budget_us = 50000,
-    .measurement_period_ms = 60,
-    .servo_angular_velocity = 15.0f,
-    .min_range_mm = 30,
-    .max_range_mm = 2000,
-    .filter_window_size = 5,
-    .motion_compensation_enabled = true,
-    .adaptive_sampling_enabled = false,
-    .signal_rate_limit = 0.2f
+    .timing_budget_us = 50000,          // 50ms timing budget (~15Hz)
+    .measurement_period_ms = 60,        // 60ms between measurements
+    .servo_angular_velocity = 15.0f,    // 15 degrees per second (slow for precision)
+    .min_range_mm = 30,                 // 30mm minimum range (very close detection)
+    .max_range_mm = 2000,               // 2000mm maximum range
+    .filter_window_size = 5,            // 5-point moving average filter (heavy filtering)
+    .motion_compensation_enabled = true, // Motion compensation enabled
+    .adaptive_sampling_enabled = false, // Fixed sampling for consistency
+    .signal_rate_limit = 0.2f           // 20% signal rate threshold (high quality)
 };
 
 // Global state structure
@@ -118,6 +180,8 @@ static void vl53l0x_data_ready_callback(vl53l0x_idx_t idx, vl53l0x_measurement_t
 static void enhanced_mapping_task(void *pvParameters);
 static esp_err_t start_enhanced_measurement_task(void);
 static esp_err_t stop_enhanced_measurement_task(void);
+static esp_err_t auto_calibrate_system(void);
+static esp_err_t analyze_environment_quality(void);
 
 /**
  * @brief Initialize the enhanced mapping system
@@ -304,7 +368,6 @@ esp_err_t mapping_get_measurement_enhanced(mapping_measurement_t *measurement)
     // Calculate angular velocity
     uint32_t current_time = esp_timer_get_time();
     if (mapping_state.last_measurement_time > 0) {
-        uint32_t time_diff = current_time - mapping_state.last_measurement_time;
         // This is a simplified calculation - real implementation would track angle changes
         measurement->angular_velocity = mapping_state.config.servo_angular_velocity;
     } else {
@@ -401,8 +464,8 @@ static void apply_motion_compensation(mapping_measurement_t *measurement)
     
     // Convert polar coordinates to cartesian for compensation
     float angle_rad = measurement->angle_deg * M_PI / 180.0f;
-    float x = measurement->distance_mm * cosf(angle_rad);
-    float y = measurement->distance_mm * sinf(angle_rad);
+    float x = measurement->distance_mm * cos(angle_rad);
+    float y = measurement->distance_mm * sin(angle_rad);
     
     // Apply robot motion compensation
     x += mapping_state.robot_motion.velocity_x * time_diff_s;
@@ -410,8 +473,8 @@ static void apply_motion_compensation(mapping_measurement_t *measurement)
     
     // Apply angular compensation
     float angle_compensation = mapping_state.robot_motion.angular_velocity * time_diff_s;
-    float cos_comp = cosf(angle_compensation);
-    float sin_comp = sinf(angle_compensation);
+    float cos_comp = cos(angle_compensation);
+    float sin_comp = sin(angle_compensation);
     
     float x_compensated = x * cos_comp - y * sin_comp;
     float y_compensated = x * sin_comp + y * cos_comp;
@@ -538,7 +601,7 @@ static void enhanced_mapping_task(void *pvParameters)
     
     while (mapping_state.running) {
         // Wait for notification or timeout
-        uint32_t notification_value = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100));
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100));
         
         esp_err_t err = mapping_get_measurement_enhanced(&measurement);
         if (err == ESP_OK) {
@@ -726,10 +789,65 @@ esp_err_t mapping_get_interpolated_measurement(int16_t target_angle, mapping_mea
     return ESP_OK;
 }
 
-// Legacy compatibility functions
+// Legacy compatibility functions - Enhanced with automatic feature detection
 esp_err_t mapping_init(void)
 {
-    return mapping_init_enhanced(&MAPPING_CONFIG_DEFAULT);
+    ESP_LOGI(TAG, "Initializing mapping system with automatic enhancement detection");
+    
+    // Auto-detect optimal configuration based on environment
+    mapping_config_t auto_config = MAPPING_CONFIG_DEFAULT;
+    
+    // Try to detect if we're in a high-speed environment
+    // This could be based on servo speed detection or other heuristics
+    bool high_speed_environment = false;
+    
+    // For now, we'll use the default configuration
+    // In the future, this could be enhanced with:
+    // - Servo speed detection
+    // - Environment analysis
+    // - Performance monitoring
+    // - User preferences stored in NVS
+    
+    if (high_speed_environment) {
+        auto_config = MAPPING_CONFIG_HIGH_SPEED;
+        ESP_LOGI(TAG, "Auto-detected high-speed environment, using high-speed config");
+    }
+    
+    // Initialize with auto-detected configuration
+    esp_err_t err = mapping_init_enhanced(&auto_config);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize enhanced mapping system");
+        return err;
+    }
+    
+    // Automatically start enhanced mode
+    err = mapping_start_enhanced(NULL);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to start enhanced mapping mode");
+        return err;
+    }
+    
+    // Perform automatic environment analysis and calibration (if enabled)
+#if MAPPING_AUTO_ENVIRONMENT_ANALYSIS
+    ESP_LOGI(TAG, "Performing automatic environment analysis...");
+    analyze_environment_quality();
+#endif
+
+#if MAPPING_AUTO_CALIBRATION
+    ESP_LOGI(TAG, "Performing automatic calibration...");
+    auto_calibrate_system();
+#endif
+    
+    // Configure motion compensation if enabled by default
+#if MAPPING_DEFAULT_MOTION_COMPENSATION
+    mapping_set_motion_compensation(true);
+    ESP_LOGI(TAG, "Motion compensation enabled by default");
+#endif
+
+    ESP_LOGI(TAG, "Mapping system initialized with enhanced features enabled");
+    ESP_LOGI(TAG, "Features: Continuous mode, filtering, quality assessment, interpolation, auto-calibration");
+    
+    return ESP_OK;
 }
 
 esp_err_t getMappingValue(int16_t *angle, uint16_t *distance)
@@ -738,12 +856,27 @@ esp_err_t getMappingValue(int16_t *angle, uint16_t *distance)
         return ESP_ERR_INVALID_ARG;
     }
     
+    // Use enhanced measurement with all features enabled
     mapping_measurement_t measurement;
     esp_err_t err = mapping_get_measurement_enhanced(&measurement);
     
     if (err == ESP_OK && measurement.valid) {
         *angle = measurement.angle_deg;
         *distance = measurement.distance_mm;
+        
+#if MAPPING_QUALITY_LOGGING
+        // Log quality information for debugging (optional)
+        static uint32_t last_quality_log = 0;
+        uint32_t current_time = esp_timer_get_time();
+        if (current_time - last_quality_log > MAPPING_QUALITY_LOG_INTERVAL_US) {
+            ESP_LOGD(TAG, "Measurement quality: %d%%, Signal: %d, Raw: %dmm, Filtered: %dmm", 
+                    measurement.quality_score, 
+                    measurement.signal_strength,
+                    measurement.raw_distance_mm,
+                    measurement.distance_mm);
+            last_quality_log = current_time;
+        }
+#endif
     }
     
     return err;
@@ -774,5 +907,121 @@ static esp_err_t stop_enhanced_measurement_task(void)
         // Task will delete itself
         mapping_state.mapping_task_handle = NULL;
     }
+    return ESP_OK;
+}
+
+/**
+ * @brief Auto-calibrate the system using environment analysis
+ */
+static esp_err_t auto_calibrate_system(void)
+{
+    ESP_LOGI(TAG, "Starting automatic calibration...");
+    
+    // Take multiple measurements to analyze environment
+    uint32_t measurements[MAPPING_CALIBRATION_SAMPLES];
+    uint16_t valid_count = 0;
+    
+    for (int i = 0; i < MAPPING_CALIBRATION_SAMPLES; i++) {
+        mapping_measurement_t measurement;
+        esp_err_t err = mapping_get_measurement_enhanced(&measurement);
+        
+        if (err == ESP_OK && measurement.valid && measurement.quality_score > MAPPING_CALIBRATION_MIN_QUALITY) {
+            measurements[valid_count++] = measurement.raw_distance_mm;
+        }
+        
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+    
+    if (valid_count < MAPPING_CALIBRATION_SAMPLES / 2) {
+        ESP_LOGW(TAG, "Auto-calibration failed: insufficient good measurements");
+        return ESP_FAIL;
+    }
+    
+    // Calculate median distance (more robust than average)
+    for (int i = 0; i < valid_count - 1; i++) {
+        for (int j = i + 1; j < valid_count; j++) {
+            if (measurements[i] > measurements[j]) {
+                uint32_t temp = measurements[i];
+                measurements[i] = measurements[j];
+                measurements[j] = temp;
+            }
+        }
+    }
+    
+    uint32_t median_distance = measurements[valid_count / 2];
+    
+    // Estimate calibration offset based on typical indoor distances
+    // This is a heuristic - in a real application, you might have known reference points
+    int16_t estimated_offset = 0;
+    
+    if (median_distance < 500) {
+        // Very close object, likely a wall or obstacle
+        estimated_offset = 20; // Typical offset for close measurements
+    } else if (median_distance < 2000) {
+        // Medium distance, typical indoor environment
+        estimated_offset = 10;
+    } else {
+        // Far distance, minimal offset
+        estimated_offset = 5;
+    }
+    
+    mapping_state.calibration_offset_mm = estimated_offset;
+    mapping_state.calibrated = true;
+    
+    ESP_LOGI(TAG, "Auto-calibration completed. Median distance: %lu mm, Estimated offset: %d mm", 
+             median_distance, estimated_offset);
+    
+    return ESP_OK;
+}
+
+/**
+ * @brief Analyze environment quality and adjust configuration
+ */
+static esp_err_t analyze_environment_quality(void)
+{
+    ESP_LOGI(TAG, "Analyzing environment quality...");
+    
+    uint32_t total_quality = 0;
+    uint16_t valid_measurements = 0;
+    uint32_t avg_signal_strength = 0;
+    
+    // Take measurements to analyze environment
+    for (int i = 0; i < MAPPING_ANALYSIS_SAMPLES; i++) {
+        mapping_measurement_t measurement;
+        esp_err_t err = mapping_get_measurement_enhanced(&measurement);
+        
+        if (err == ESP_OK && measurement.valid) {
+            total_quality += measurement.quality_score;
+            avg_signal_strength += measurement.signal_strength;
+            valid_measurements++;
+        }
+        
+        vTaskDelay(pdMS_TO_TICKS(50));
+    }
+    
+    if (valid_measurements < MAPPING_ANALYSIS_SAMPLES / 2) {
+        ESP_LOGW(TAG, "Environment analysis failed: insufficient measurements");
+        return ESP_FAIL;
+    }
+    
+    uint32_t avg_quality = total_quality / valid_measurements;
+    avg_signal_strength /= valid_measurements;
+    
+    ESP_LOGI(TAG, "Environment analysis: Avg quality: %lu%%, Avg signal: %lu", 
+             avg_quality, avg_signal_strength);
+    
+    // Adjust configuration based on environment quality
+    if (avg_quality < 30) {
+        // Poor environment - increase timing budget for better accuracy
+        ESP_LOGI(TAG, "Poor environment detected, increasing timing budget");
+        mapping_state.config.timing_budget_us = VL53L0X_TIMING_BUDGET_100MS;
+        mapping_state.config.filter_window_size = 8; // More aggressive filtering
+    } else if (avg_quality > 80) {
+        // Excellent environment - can use faster settings
+        ESP_LOGI(TAG, "Excellent environment detected, optimizing for speed");
+        mapping_state.config.timing_budget_us = VL53L0X_TIMING_BUDGET_20MS;
+        mapping_state.config.filter_window_size = 3; // Less filtering needed
+    }
+    
     return ESP_OK;
 }

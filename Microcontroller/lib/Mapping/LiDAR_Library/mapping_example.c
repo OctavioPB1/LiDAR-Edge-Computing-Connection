@@ -16,6 +16,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_timer.h"
+#include <math.h>
 
 static const char *TAG = "MAPPING_EXAMPLE";
 
@@ -112,9 +113,9 @@ void mapping_example_high_speed(void)
     // Update robot motion periodically
     for (int i = 0; i < 20; i++) {
         // Simulate changing robot velocity
-        float velocity_x = 100.0f * cosf(i * 0.1f);
-        float velocity_y = 50.0f * sinf(i * 0.1f);
-        float angular_vel = 0.1f * sinf(i * 0.2f);
+        float velocity_x = 100.0f * cos(i * 0.1f);
+        float velocity_y = 50.0f * sin(i * 0.1f);
+        float angular_vel = 0.1f * sin(i * 0.2f);
         
         mapping_set_robot_motion(velocity_x, velocity_y, angular_vel);
         
@@ -187,17 +188,52 @@ void mapping_example_calibration(void)
 {
     ESP_LOGI(TAG, "=== Calibration Example ===");
     
-    // Create custom configuration
+    // Create custom configuration optimized for calibration
     mapping_config_t custom_config = {
-        .timing_budget_us = 30000,          // 30ms for high accuracy
-        .measurement_period_ms = 40,        // 40ms period
-        .servo_angular_velocity = 20.0f,    // Slow servo for precision
-        .min_range_mm = 30,                 // Very close objects
-        .max_range_mm = 3000,               // Extended range
-        .filter_window_size = 5,            // Strong filtering
-        .motion_compensation_enabled = true,
-        .adaptive_sampling_enabled = false, // Fixed sampling
-        .signal_rate_limit = 0.15f          // Higher signal threshold
+        .timing_budget_us = 30000,          // 30ms timing budget for high accuracy
+        //   - Longer timing = better accuracy for calibration
+        //   - 30ms provides good balance between speed and precision
+        //   - Use 50ms or 100ms for maximum calibration accuracy
+        
+        .measurement_period_ms = 40,        // 40ms between measurements
+        //   - Must be >= timing_budget_us/1000 (30ms)
+        //   - 40ms gives ~25Hz measurement rate
+        //   - Slower rate allows for more stable measurements during calibration
+        
+        .servo_angular_velocity = 20.0f,    // Slow servo speed for precision
+        //   - 20 deg/s = 9 seconds for 180° rotation
+        //   - Slower speed = more measurements per degree = better angular resolution
+        //   - Critical for accurate calibration measurements
+        
+        .min_range_mm = 30,                 // Very close range detection
+        //   - 30mm minimum allows calibration at close distances
+        //   - Useful for calibrating with nearby objects
+        //   - May cause sensor saturation if too close
+        
+        .max_range_mm = 3000,               // Extended maximum range
+        //   - 3000mm allows calibration at various distances
+        //   - Useful for testing calibration across different ranges
+        //   - Higher range may reduce accuracy at close distances
+        
+        .filter_window_size = 5,            // Heavy filtering for stability
+        //   - 5-point moving average filter
+        //   - Reduces noise for more consistent calibration
+        //   - Slower response but more stable measurements
+        
+        .motion_compensation_enabled = true, // Enable motion compensation
+        //   - Corrects for any robot movement during calibration
+        //   - Important if robot might move during calibration process
+        //   - Set to false if robot is completely stationary
+        
+        .adaptive_sampling_enabled = false, // Fixed sampling rate
+        //   - Disabled for consistent measurement intervals during calibration
+        //   - Ensures predictable timing for calibration calculations
+        //   - Use true for variable speed servos in normal operation
+        
+        .signal_rate_limit = 0.15f          // Higher signal quality threshold
+        //   - 15% signal rate threshold (higher than default 10%)
+        //   - Rejects weak signals that could affect calibration accuracy
+        //   - May result in fewer measurements but higher quality
     };
     
     // Initialize with custom configuration
@@ -255,7 +291,7 @@ void mapping_example_performance_comparison(void)
 {
     ESP_LOGI(TAG, "=== Performance Comparison Example ===");
     
-    mapping_statistics_t stats_legacy, stats_enhanced;
+    mapping_statistics_t stats_enhanced;
     uint32_t start_time, end_time;
     
     // Test legacy mode
