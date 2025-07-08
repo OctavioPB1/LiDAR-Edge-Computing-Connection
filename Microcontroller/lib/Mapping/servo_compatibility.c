@@ -15,6 +15,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
+#include "esp_timer.h"
 #include <string.h>
 
 static const char *TAG = "SERVO_SIMPLE";
@@ -29,6 +30,11 @@ static bool g_is_paused = false;
 static uint32_t g_last_speed = SERVO_STOP;
 static servo_direction_t g_last_direction = SERVO_DIR_STOP;
 static bool g_direction_inverted = false;
+
+// Angle tracking for continuous rotation servos
+static float g_current_angle = 0.0f;  // Current angle in degrees
+static uint32_t g_last_update_time = 0;  // Last update time in milliseconds
+static bool g_angle_tracking_enabled = false;
 
 // Semaphores for thread safety
 static SemaphoreHandle_t g_servo_semaphore = NULL;
@@ -68,6 +74,47 @@ static servo_direction_t pulse_to_direction(uint32_t pulse_us)
     return SERVO_DIR_STOP;
 }
 
+static void update_angle_tracking(void)
+{
+    if (!g_angle_tracking_enabled) {
+        return;
+    }
+
+    uint32_t current_time = esp_timer_get_time() / 1000; // Convert to milliseconds
+    uint32_t elapsed_time = current_time - g_last_update_time;
+    
+    if (elapsed_time == 0) {
+        return;
+    }
+
+    // Calculate angular velocity based on current speed and direction
+    float angular_velocity = 0.0f;
+    
+    if (g_last_direction == SERVO_DIR_CW) {
+        // Clockwise rotation - negative angular velocity
+        uint8_t speed = pulse_to_speed(g_last_speed);
+        angular_velocity = -(speed * 6.0f); // Approximate 6 degrees per second per speed unit
+    } else if (g_last_direction == SERVO_DIR_CCW) {
+        // Counter-clockwise rotation - positive angular velocity
+        uint8_t speed = pulse_to_speed(g_last_speed);
+        angular_velocity = (speed * 6.0f); // Approximate 6 degrees per second per speed unit
+    }
+    
+    // Update angle based on elapsed time
+    float angle_change = (angular_velocity * elapsed_time) / 1000.0f; // Convert to degrees
+    g_current_angle += angle_change;
+    
+    // Normalize angle to 0-360 range
+    while (g_current_angle >= 360.0f) {
+        g_current_angle -= 360.0f;
+    }
+    while (g_current_angle < 0.0f) {
+        g_current_angle += 360.0f;
+    }
+    
+    g_last_update_time = current_time;
+}
+
 esp_err_t servo_simple_initialize(void)
 {
     if (g_is_initialized) {
@@ -96,6 +143,11 @@ esp_err_t servo_simple_initialize(void)
     g_is_paused = false;
     g_last_speed = SERVO_STOP;
     g_last_direction = SERVO_DIR_STOP;
+    
+    // Initialize angle tracking
+    g_current_angle = 0.0f;
+    g_last_update_time = esp_timer_get_time() / 1000;
+    g_angle_tracking_enabled = true;
 
     ESP_LOGI(TAG, "Servo simple compatibility layer initialized successfully");
     return ESP_OK;
@@ -131,6 +183,7 @@ esp_err_t servo_simple_start(void)
         if (ret == ESP_OK) {
             g_last_speed = SERVO_MEDIUM_SPEED_CCW;
             g_last_direction = direction;
+            g_last_update_time = esp_timer_get_time() / 1000; // Reset timer for angle tracking
         }
     }
 
@@ -156,6 +209,7 @@ esp_err_t servo_simple_stop(void)
 
     esp_err_t ret = servo_generic_stop(g_servo_handle);
     if (ret == ESP_OK) {
+        update_angle_tracking(); // Update angle before stopping
         g_last_speed = SERVO_STOP;
         g_last_direction = SERVO_DIR_STOP;
         ESP_LOGI(TAG, "Servo stopped");
@@ -178,6 +232,7 @@ esp_err_t servo_simple_pause(void)
 
     esp_err_t ret = servo_generic_stop(g_servo_handle);
     if (ret == ESP_OK) {
+        update_angle_tracking(); // Update angle before pausing
         g_is_paused = true;
         ESP_LOGI(TAG, "Servo paused");
     }
@@ -205,6 +260,7 @@ esp_err_t servo_simple_restart(void)
         ret = servo_generic_set_speed(g_servo_handle, speed, g_last_direction);
         if (ret == ESP_OK) {
             g_is_paused = false;
+            g_last_update_time = esp_timer_get_time() / 1000; // Reset timer for angle tracking
             ESP_LOGI(TAG, "Servo restarted");
         }
     }
@@ -215,9 +271,37 @@ esp_err_t servo_simple_restart(void)
 
 int16_t readAngle_simple(void)
 {
-    // For continuous rotation servos, we can't read the actual angle
-    ESP_LOGW(TAG, "Angle reading not available for continuous rotation servos");
-    return -1;
+    if (!g_is_initialized) {
+        ESP_LOGE(TAG, "Servo not initialized");
+        return -1;
+    }
+
+    // Update angle tracking to get current position
+    update_angle_tracking();
+    
+    // Return the tracked angle as an integer (0-359 degrees)
+    int16_t angle = (int16_t)g_current_angle;
+    
+    ESP_LOGD(TAG, "Current angle: %d degrees", angle);
+    return angle;
+}
+
+void servo_simple_reset_angle(void)
+{
+    if (!g_is_initialized) {
+        ESP_LOGE(TAG, "Servo not initialized");
+        return;
+    }
+
+    if (xSemaphoreTake(g_servo_semaphore, portMAX_DELAY) != pdTRUE) {
+        return;
+    }
+
+    g_current_angle = 0.0f;
+    g_last_update_time = esp_timer_get_time() / 1000;
+    ESP_LOGI(TAG, "Angle reset to 0 degrees");
+
+    xSemaphoreGive(g_servo_semaphore);
 }
 
 void servo_simple_set_speed(SERVO_DIRECTION_SIMPLE direction)
@@ -272,6 +356,8 @@ void servo_simple_set_speed(SERVO_DIRECTION_SIMPLE direction)
 
     // Apply the new speed
     if (new_pulse != current_pulse) {
+        update_angle_tracking(); // Update angle before changing speed
+        
         uint8_t new_speed = pulse_to_speed(new_pulse);
         servo_direction_t new_direction = pulse_to_direction(new_pulse);
         
@@ -279,6 +365,7 @@ void servo_simple_set_speed(SERVO_DIRECTION_SIMPLE direction)
         if (ret == ESP_OK) {
             g_last_speed = new_pulse;
             g_last_direction = new_direction;
+            g_last_update_time = esp_timer_get_time() / 1000; // Reset timer for angle tracking
             ESP_LOGI(TAG, "Speed changed to pulse: %lu, speed: %d, direction: %d", 
                     new_pulse, new_speed, new_direction);
         }
@@ -305,11 +392,14 @@ void servo_simple_invert(void)
     g_servo_handle->config.invert_direction = g_direction_inverted;
     
     // Reapply current speed with new direction
+    update_angle_tracking(); // Update angle before inverting
+    
     uint8_t current_speed = pulse_to_speed(g_last_speed);
     servo_direction_t current_direction = g_last_direction;
     
     esp_err_t ret = servo_generic_set_speed(g_servo_handle, current_speed, current_direction);
     if (ret == ESP_OK) {
+        g_last_update_time = esp_timer_get_time() / 1000; // Reset timer for angle tracking
         ESP_LOGI(TAG, "Servo direction inverted: %s", g_direction_inverted ? "true" : "false");
     }
 
@@ -329,6 +419,12 @@ esp_err_t delete_servo_simple_semaphores(void)
         g_is_initialized = false;
         g_is_enabled = false;
         g_is_paused = false;
+        
+        // Reset angle tracking
+        g_current_angle = 0.0f;
+        g_last_update_time = 0;
+        g_angle_tracking_enabled = false;
+        
         return ret;
     }
 
