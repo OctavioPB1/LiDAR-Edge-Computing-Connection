@@ -42,6 +42,7 @@ esp_err_t servo_simple_stop(void);
 esp_err_t servo_simple_pause(void);
 esp_err_t servo_simple_restart(void);
 int16_t readAngle_simple(void);
+void servo_simple_reset_angle(void);
 void servo_simple_set_speed(SERVO_DIRECTION_SIMPLE direction);
 void servo_simple_invert(void);
 esp_err_t delete_servo_simple_semaphores(void);
@@ -53,6 +54,7 @@ esp_err_t delete_servo_simple_semaphores(void);
 #define servo_pause() servo_simple_pause()
 #define servo_restart() servo_simple_restart()
 #define readAngle() readAngle_simple()
+#define servo_reset_angle() servo_simple_reset_angle()
 #define servo_set_speed(dir) servo_simple_set_speed((dir == SERVO_UP_SIMPLE) ? SERVO_UP_SIMPLE : SERVO_DOWN_SIMPLE)
 #define servo_invert() servo_simple_invert()
 #define delete_servo_semaphores() delete_servo_simple_semaphores()
