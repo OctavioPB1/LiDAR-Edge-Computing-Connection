@@ -16,7 +16,7 @@
 
 // If DEBUG is not defined elsewhere, define it here with a default value
 #ifndef DEBUG
-    #define DEBUG 0  /**< Set to 0 to disable debugging logs */
+    #define DEBUG 1  /**< Set to 0 to disable debugging logs */
 #endif
 
 /**

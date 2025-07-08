@@ -167,8 +167,7 @@
         "y": 1280,
         "wires": [
             [
-                "cab52bb542308489",
-                "f8f6e1c99046f8df"
+                "ca18d0dd3e00ce3a"
             ]
         ]
     },
@@ -184,7 +183,7 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 720,
+        "x": 800,
         "y": 1340,
         "wires": [
             [
@@ -192,7 +191,8 @@
             ],
             [
                 "a2c5745d2f04fcd2",
-                "09e9f17a5dadfa10"
+                "58f7aebc55d43a05",
+                "3330a6902c4c5743"
             ]
         ]
     },
@@ -203,8 +203,8 @@
         "name": "",
         "statusCode": "",
         "headers": {},
-        "x": 950,
-        "y": 1340,
+        "x": 990,
+        "y": 1320,
         "wires": []
     },
     {
@@ -288,7 +288,7 @@
         "retentionPolicyV18Flux": "",
         "org": "organisation",
         "bucket": "bucket",
-        "x": 700,
+        "x": 860,
         "y": 1280,
         "wires": []
     },
@@ -2800,7 +2800,7 @@
         "name": "MQTT Tests‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ",
         "info": "",
         "x": 900,
-        "y": 3000,
+        "y": 3120,
         "wires": []
     },
     {
@@ -2821,7 +2821,7 @@
         "payload": "{\"tag\":\"BATTERY\",\"type\":\"WARNING\",\"message\":\"Voltage out of expected range\"}",
         "payloadType": "json",
         "x": 120,
-        "y": 3120,
+        "y": 3240,
         "wires": [
             [
                 "69bd80992927131b"
@@ -2846,7 +2846,7 @@
         "payload": "{\"level\":\"0\"}",
         "payloadType": "json",
         "x": 110,
-        "y": 3060,
+        "y": 3180,
         "wires": [
             [
                 "7f2ed9ca8e69899c"
@@ -2871,7 +2871,7 @@
         "payload": "{\"distance\":\"322\",\"angle\":\"-241\"}",
         "payloadType": "json",
         "x": 120,
-        "y": 3180,
+        "y": 3300,
         "wires": [
             [
                 "24c5930338d3c02b"
@@ -2893,7 +2893,7 @@
         "expiry": "",
         "broker": "78b50610a06c74af",
         "x": 340,
-        "y": 3060,
+        "y": 3180,
         "wires": []
     },
     {
@@ -2911,7 +2911,7 @@
         "expiry": "",
         "broker": "78b50610a06c74af",
         "x": 340,
-        "y": 3180,
+        "y": 3300,
         "wires": []
     },
     {
@@ -2929,7 +2929,7 @@
         "expiry": "",
         "broker": "78b50610a06c74af",
         "x": 350,
-        "y": 3120,
+        "y": 3240,
         "wires": []
     },
     {
@@ -2941,7 +2941,8 @@
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "false",
+        "complete": "true",
+        "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
         "x": 380,
@@ -2953,11 +2954,12 @@
         "type": "debug",
         "z": "3f5e27f1057c3b43",
         "name": "debug 2",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "false",
+        "complete": "true",
+        "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
         "x": 310,
@@ -2973,7 +2975,8 @@
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "false",
+        "complete": "payload",
+        "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
         "x": 420,
@@ -2989,7 +2992,8 @@
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "false",
+        "complete": "true",
+        "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
         "x": 380,
@@ -3001,7 +3005,7 @@
         "type": "debug",
         "z": "3f5e27f1057c3b43",
         "name": "debug 5",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -3022,7 +3026,8 @@
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "false",
+        "complete": "true",
+        "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
         "x": 400,
@@ -3038,7 +3043,8 @@
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "false",
+        "complete": "true",
+        "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
         "x": 380,
@@ -3054,7 +3060,8 @@
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "false",
+        "complete": "true",
+        "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
         "x": 380,
@@ -3066,11 +3073,12 @@
         "type": "debug",
         "z": "3f5e27f1057c3b43",
         "name": "debug 9",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "false",
+        "complete": "true",
+        "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
         "x": 320,
@@ -3086,7 +3094,8 @@
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "false",
+        "complete": "true",
+        "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
         "x": 460,
@@ -3102,7 +3111,8 @@
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "false",
+        "complete": "true",
+        "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
         "x": 420,
@@ -3118,7 +3128,8 @@
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "false",
+        "complete": "true",
+        "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
         "x": 420,
@@ -3130,11 +3141,12 @@
         "type": "debug",
         "z": "3f5e27f1057c3b43",
         "name": "debug 13",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "false",
+        "complete": "true",
+        "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
         "x": 330,
@@ -3217,25 +3229,237 @@
         ]
     },
     {
-        "id": "09e9f17a5dadfa10",
+        "id": "02d9ee28aa2b5917",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "{\"id\":530,\"instruction\":\"Brake\",\"time\":1752009154481,\"read\":false",
+        "props": [
+            {
+                "p": "payload.id",
+                "v": "1",
+                "vt": "num"
+            },
+            {
+                "p": "payload.instruction",
+                "v": "Brake",
+                "vt": "str"
+            },
+            {
+                "p": "payload.time",
+                "v": "1752009154481",
+                "vt": "str"
+            },
+            {
+                "p": "payload.read",
+                "v": "false",
+                "vt": "bool"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 1250,
+        "y": 1240,
+        "wires": [
+            [
+                "58f7aebc55d43a05"
+            ]
+        ]
+    },
+    {
+        "id": "6bce7303bb0983a6",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "{\"id\":530,\"instruction\":\"Brake\",\"time\":1752009154481,\"read\":false",
+        "props": [
+            {
+                "p": "payload.id",
+                "v": "1",
+                "vt": "num"
+            },
+            {
+                "p": "payload.instruction",
+                "v": "Forward",
+                "vt": "str"
+            },
+            {
+                "p": "payload.time",
+                "v": "1752009154481",
+                "vt": "str"
+            },
+            {
+                "p": "payload.read",
+                "v": "false",
+                "vt": "bool"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 1250,
+        "y": 1280,
+        "wires": [
+            [
+                "58f7aebc55d43a05"
+            ]
+        ]
+    },
+    {
+        "id": "ca18d0dd3e00ce3a",
         "type": "function",
         "z": "3f5e27f1057c3b43",
         "name": "Brake Timer",
-        "func": "// --- Configuración -----------------------------\nconst TIMEOUT_MS = 10 * 1000;     // 10 s de inactividad\nconst CTX_KEY = \"inactivity\";  // dónde guardamos el handle\n// ----------------------------------------------\n\n// 1) Cancelo el temporizador anterior (si existía)\nlet h = context.get(CTX_KEY);\nif (h) { clearTimeout(h); }\n\n// 2) Creo un nuevo temporizador\nh = setTimeout(() => {\n    // Enviamos el aviso.  `node.send` es seguro incluso\n    // fuera del retorno principal.\n    node.send({\n        payload: {\n            instruction: \"Brake\",\n        },\n        id_nodoEdge: -1\n    }\n    );\n}, TIMEOUT_MS);\n\n// 3) Guardo el handle para la próxima ejecución\ncontext.set(CTX_KEY, h);\n\n// 4) Devuelvo el mensaje original sin tocarlo\nreturn msg;\n",
+        "func": "// --- Configuración -----------------------------\nconst TIMEOUT_MS = 10 * 1000;     // 10 s de inactividad\nconst CTX_KEY = \"inactivity\";  // dónde guardamos el handle\n// ----------------------------------------------\n\n// 1) Cancelo el temporizador anterior (si existía)\nlet h = context.get(CTX_KEY);\nif (h) { clearTimeout(h); }\n\n// 2) Creo un nuevo temporizador\nh = setTimeout(() => {\n    // Enviamos el aviso.  `node.send` es seguro incluso\n    // fuera del retorno principal.\n    let measurement = flow.get('instructionMeasurement');\n    node.send({\n        payload: [{\n            measurement: measurement,\n            fields: {\n                \"instruction\": 'Brake',\n                \"read\": false\n            },\n            tags: {\n                \"id\": parseInt(-1)\n            },\n            'timestamp': new Date().valueOf()\n        }]\n        }\n    );\n}, TIMEOUT_MS);\n\n// 3) Guardo el handle para la próxima ejecución\ncontext.set(CTX_KEY, h);\n\n// 4) Devuelvo el mensaje original sin tocarlo\nreturn msg;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 970,
-        "y": 1380,
+        "x": 610,
+        "y": 1420,
         "wires": [
             [
-                "58f7aebc55d43a05",
-                "3330a6902c4c5743"
+                "f8f6e1c99046f8df",
+                "b7333bdc0cc351da",
+                "f974a139a054e7e0"
             ]
         ]
+    },
+    {
+        "id": "b7333bdc0cc351da",
+        "type": "debug",
+        "z": "3f5e27f1057c3b43",
+        "name": "debug 45",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 700,
+        "y": 1220,
+        "wires": []
+    },
+    {
+        "id": "f974a139a054e7e0",
+        "type": "delay",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "5",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 690,
+        "y": 1260,
+        "wires": [
+            [
+                "cab52bb542308489"
+            ]
+        ]
+    },
+    {
+        "id": "b51b16d63abe4ef7",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "30",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "str",
+        "x": 150,
+        "y": 3040,
+        "wires": [
+            [
+                "19951deb3a516051"
+            ]
+        ]
+    },
+    {
+        "id": "19951deb3a516051",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "function 8",
+        "func": "const thirtySecondsAgo = new Date(Date.now() - 30000).toISOString();\nlet measurement = flow.get('mappingValueMeasurement');\nmsg.query = 'DELETE FROM ' + measurement + ' WHERE time < ' + \"'\" + thirtySecondsAgo + \"'\";\nmsg.payload = null;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 300,
+        "y": 3040,
+        "wires": [
+            [
+                "ce9ac85f12f61169",
+                "447697235cafe1d2"
+            ]
+        ]
+    },
+    {
+        "id": "ce9ac85f12f61169",
+        "type": "debug",
+        "z": "3f5e27f1057c3b43",
+        "name": "debug 46",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 480,
+        "y": 3000,
+        "wires": []
+    },
+    {
+        "id": "447697235cafe1d2",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 520,
+        "y": 3040,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "90e599dc6626242f",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "TTL de 30 segundos",
+        "info": "",
+        "x": 170,
+        "y": 3000,
+        "wires": []
     },
     {
         "id": "78b50610a06c74af",
