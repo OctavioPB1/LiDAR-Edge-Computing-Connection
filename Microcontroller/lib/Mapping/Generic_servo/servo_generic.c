@@ -66,7 +66,7 @@ const servo_config_t SERVO_CONFIG_CONTINUOUS_STANDARD = {
     .type = SERVO_TYPE_CONTINUOUS,
     .min_pulse_us = 900,
     .max_pulse_us = 2100,
-    .center_pulse_us = 1500,
+    .center_pulse_us = 1440,
     .frequency_hz = 50,
     .min_angle = 0,
     .max_angle = 0,
@@ -202,6 +202,33 @@ esp_err_t servo_generic_init(const servo_config_t *config, servo_handle_t **hand
     ret = mcpwm_comparator_set_compare_value((*handle)->comparator, (*handle)->current_pulse);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to set initial compare value: %s", esp_err_to_name(ret));
+        mcpwm_del_generator((*handle)->generator);
+        mcpwm_del_comparator((*handle)->comparator);
+        mcpwm_del_operator((*handle)->operator);
+        mcpwm_del_timer((*handle)->timer);
+        free(*handle);
+        *handle = NULL;
+        return ret;
+    }
+
+    // Configure generator actions - CRITICAL: This generates the actual PWM signal
+    ret = mcpwm_generator_set_action_on_timer_event((*handle)->generator,
+                                                    MCPWM_GEN_TIMER_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP, MCPWM_TIMER_EVENT_EMPTY, MCPWM_GEN_ACTION_HIGH));
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to set generator action on timer event: %s", esp_err_to_name(ret));
+        mcpwm_del_generator((*handle)->generator);
+        mcpwm_del_comparator((*handle)->comparator);
+        mcpwm_del_operator((*handle)->operator);
+        mcpwm_del_timer((*handle)->timer);
+        free(*handle);
+        *handle = NULL;
+        return ret;
+    }
+
+    ret = mcpwm_generator_set_action_on_compare_event((*handle)->generator,
+                                                      MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP, (*handle)->comparator, MCPWM_GEN_ACTION_LOW));
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to set generator action on compare event: %s", esp_err_to_name(ret));
         mcpwm_del_generator((*handle)->generator);
         mcpwm_del_comparator((*handle)->comparator);
         mcpwm_del_operator((*handle)->operator);

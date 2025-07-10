@@ -19,7 +19,7 @@
 #define SERVO_MAX_SPEED_CW      900     /**< Maximum speed for clockwise rotation. */
 #define SERVO_MEDIUM_SPEED_CW   1300    /**< Medium speed for clockwise rotation. */
 #define SERVO_LOW_SPEED_CW      1200    /**< Low speed for clockwise rotation. */
-#define SERVO_STOP              1500    /**< PWM value to stop the servo. */
+#define SERVO_STOP              1440    /**< PWM value to stop the servo. */
 #define SERVO_LOW_SPEED_CCW     1800    /**< Low speed for counterclockwise rotation. */
 #define SERVO_MEDIUM_SPEED_CCW  1650    /**< Medium speed for counterclockwise rotation. */
 #define SERVO_MAX_SPEED_CCW     2100    /**< Maximum speed for counterclockwise rotation. */
