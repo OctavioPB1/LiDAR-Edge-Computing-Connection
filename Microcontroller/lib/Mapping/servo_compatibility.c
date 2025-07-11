@@ -17,6 +17,7 @@
 #include "freertos/semphr.h"
 #include "esp_timer.h"
 #include <string.h>
+#include <math.h>
 
 static const char *TAG = "SERVO_SIMPLE";
 
@@ -39,19 +40,42 @@ static bool g_angle_tracking_enabled = false;
 // Semaphores for thread safety
 static SemaphoreHandle_t g_servo_semaphore = NULL;
 
-// Speed mapping for the old API
+// MS-R-1.3-9 Speed calculation function
+// Linear interpolation: pulse_us -> degrees_per_second
+// At 1500us (center): 0 degrees/second
+// At 900us (min): -545 degrees/second (CW)
+// At 2100us (max): +545 degrees/second (CCW)
+static float pulse_to_degrees_per_second(uint32_t pulse_us)
+{
+    if (pulse_us == SERVO_MS_R_1_3_9_CENTER_PULSE_US) {
+        return 0.0f; // Stop
+    }
+    
+    // Calculate the deviation from center
+    int32_t deviation = (int32_t)pulse_us - (int32_t)SERVO_MS_R_1_3_9_CENTER_PULSE_US;
+    
+    // Calculate speed based on linear interpolation
+    float speed_ratio = (float)deviation / (float)(SERVO_MS_R_1_3_9_MAX_PULSE_US - SERVO_MS_R_1_3_9_CENTER_PULSE_US);
+    
+    // Apply maximum speed
+    float degrees_per_second = speed_ratio * SERVO_MS_R_1_3_9_MAX_SPEED_DPS;
+    
+    return degrees_per_second;
+}
+
+// Speed mapping for the old API - Updated with MS-R-1.3-9 specifications
 static const struct {
     uint32_t pulse_us;
     uint8_t speed;
     servo_direction_t direction;
 } SPEED_MAPPING[] = {
-    {SERVO_MAX_SPEED_CW,     100,  SERVO_DIR_CW},
-    {SERVO_MEDIUM_SPEED_CW,   50,  SERVO_DIR_CW},
-    {SERVO_LOW_SPEED_CW,      25,  SERVO_DIR_CW},
-    {SERVO_STOP,               0,  SERVO_DIR_STOP},
-    {SERVO_LOW_SPEED_CCW,     25,  SERVO_DIR_CCW},
-    {SERVO_MEDIUM_SPEED_CCW,  50,  SERVO_DIR_CCW},
-    {SERVO_MAX_SPEED_CCW,    100,  SERVO_DIR_CCW}
+    {SERVO_MAX_SPEED_CW,     100, SERVO_DIR_CW},    // 900us  -> -200°/s
+    {SERVO_MEDIUM_SPEED_CW,   50, SERVO_DIR_CW},    // 1200us -> -100°/s
+    {SERVO_LOW_SPEED_CW,      15, SERVO_DIR_CW},    // 1400us -> -30°/s (slower)
+    {SERVO_STOP,               0, SERVO_DIR_STOP},  // 1440us -> 0°/s
+    {SERVO_LOW_SPEED_CCW,     15, SERVO_DIR_CCW},   // 1480us -> +30°/s (slower)
+    {SERVO_MEDIUM_SPEED_CCW,  50, SERVO_DIR_CCW},   // 1800us -> +100°/s
+    {SERVO_MAX_SPEED_CCW,    100, SERVO_DIR_CCW}    // 2100us -> +200°/s
 };
 
 static uint8_t pulse_to_speed(uint32_t pulse_us)
@@ -87,18 +111,8 @@ static void update_angle_tracking(void)
         return;
     }
 
-    // Calculate angular velocity based on current speed and direction
-    float angular_velocity = 0.0f;
-    
-    if (g_last_direction == SERVO_DIR_CW) {
-        // Clockwise rotation - negative angular velocity
-        uint8_t speed = pulse_to_speed(g_last_speed);
-        angular_velocity = -(speed * 6.0f); // Approximate 6 degrees per second per speed unit
-    } else if (g_last_direction == SERVO_DIR_CCW) {
-        // Counter-clockwise rotation - positive angular velocity
-        uint8_t speed = pulse_to_speed(g_last_speed);
-        angular_velocity = (speed * 6.0f); // Approximate 6 degrees per second per speed unit
-    }
+    // Get angular velocity directly from mapping table
+    float angular_velocity = pulse_to_degrees_per_second(g_last_speed);
     
     // Update angle based on elapsed time
     float angle_change = (angular_velocity * elapsed_time) / 1000.0f; // Convert to degrees
@@ -113,6 +127,10 @@ static void update_angle_tracking(void)
     }
     
     g_last_update_time = current_time;
+    
+    // Debug logging (remove in production)
+    ESP_LOGD(TAG, "Angle tracking: elapsed=%lums, angular_vel=%.2f°/s, angle_change=%.2f°, current_angle=%.2f°", 
+             elapsed_time, angular_velocity, angle_change, g_current_angle);
 }
 
 esp_err_t servo_simple_initialize(void)
@@ -174,14 +192,14 @@ esp_err_t servo_simple_start(void)
         }
     }
 
-    // Set to medium speed CCW (original behavior)
+    // Set to low speed CCW (slower than original behavior)
     if (ret == ESP_OK) {
-        uint8_t speed = pulse_to_speed(SERVO_MEDIUM_SPEED_CCW);
-        servo_direction_t direction = pulse_to_direction(SERVO_MEDIUM_SPEED_CCW);
+        uint8_t speed = pulse_to_speed(SERVO_LOW_SPEED_CCW);
+        servo_direction_t direction = pulse_to_direction(SERVO_LOW_SPEED_CCW);
         
         ret = servo_generic_set_speed(g_servo_handle, speed, direction);
         if (ret == ESP_OK) {
-            g_last_speed = SERVO_MEDIUM_SPEED_CCW;
+            g_last_speed = SERVO_LOW_SPEED_CCW;
             g_last_direction = direction;
             g_last_update_time = esp_timer_get_time() / 1000; // Reset timer for angle tracking
         }
@@ -190,7 +208,7 @@ esp_err_t servo_simple_start(void)
     xSemaphoreGive(g_servo_semaphore);
     
     if (ret == ESP_OK) {
-        ESP_LOGI(TAG, "Servo started with medium speed CCW");
+        ESP_LOGI(TAG, "Servo started with low speed CCW (slower)");
     }
     
     return ret;
@@ -429,4 +447,67 @@ esp_err_t delete_servo_simple_semaphores(void)
     }
 
     return ESP_OK;
+}
+
+// Additional calibration and debugging functions
+void servo_simple_calibrate_speed(uint32_t pulse_us, float measured_degrees_per_second)
+{
+    float calculated_speed = pulse_to_degrees_per_second(pulse_us);
+    float error_percentage = ((calculated_speed - measured_degrees_per_second) / measured_degrees_per_second) * 100.0f;
+    
+    ESP_LOGI(TAG, "=== SERVO CALIBRATION RESULTS ===");
+    ESP_LOGI(TAG, "Pulse: %lu us", pulse_us);
+    ESP_LOGI(TAG, "Calculated speed: %.2f degrees/second", calculated_speed);
+    ESP_LOGI(TAG, "Measured speed: %.2f degrees/second", measured_degrees_per_second);
+    ESP_LOGI(TAG, "Error: %.2f%%", error_percentage);
+    
+    if (fabs(error_percentage) > 10.0f) {
+        ESP_LOGW(TAG, "Large error detected! Consider adjusting SERVO_MS_R_1_3_9_MAX_SPEED_DPS");
+        float suggested_max_speed = SERVO_MS_R_1_3_9_MAX_SPEED_DPS * (measured_degrees_per_second / calculated_speed);
+        ESP_LOGI(TAG, "Suggested SERVO_MS_R_1_3_9_MAX_SPEED_DPS: %.2f", suggested_max_speed);
+    } else {
+        ESP_LOGI(TAG, "Calibration looks good!");
+    }
+    ESP_LOGI(TAG, "================================");
+}
+
+void servo_simple_debug_angle_tracking(void)
+{
+    if (!g_is_initialized) {
+        ESP_LOGE(TAG, "Servo not initialized");
+        return;
+    }
+
+    ESP_LOGI(TAG, "=== ANGLE TRACKING DEBUG (MS-R-1.3-9) ===");
+    ESP_LOGI(TAG, "Current angle: %.2f degrees", g_current_angle);
+    ESP_LOGI(TAG, "Last update time: %lu ms", g_last_update_time);
+    ESP_LOGI(TAG, "Tracking enabled: %s", g_angle_tracking_enabled ? "YES" : "NO");
+    ESP_LOGI(TAG, "Current pulse: %lu us", g_last_speed);
+    ESP_LOGI(TAG, "Current direction: %d", g_last_direction);
+    ESP_LOGI(TAG, "Angular velocity: %.2f degrees/second", pulse_to_degrees_per_second(g_last_speed));
+    ESP_LOGI(TAG, "Servo specifications:");
+    ESP_LOGI(TAG, "  - Min pulse: %d us", SERVO_MS_R_1_3_9_MIN_PULSE_US);
+    ESP_LOGI(TAG, "  - Max pulse: %d us", SERVO_MS_R_1_3_9_MAX_PULSE_US);
+    ESP_LOGI(TAG, "  - Center pulse: %d us", SERVO_MS_R_1_3_9_CENTER_PULSE_US);
+    ESP_LOGI(TAG, "  - Max speed: %.2f degrees/second", SERVO_MS_R_1_3_9_MAX_SPEED_DPS);
+    ESP_LOGI(TAG, "  - Operating voltage: %.1fV", SERVO_MS_R_1_3_9_VOLTAGE);
+    ESP_LOGI(TAG, "=========================================");
+}
+
+int servo_simple_is_moving(void)
+{
+    if (!g_is_initialized) {
+        return 0; // false
+    }
+    
+    return (g_last_direction != SERVO_DIR_STOP && g_last_speed != SERVO_STOP) ? 1 : 0;
+}
+
+float servo_simple_get_angular_velocity(void)
+{
+    if (!g_is_initialized) {
+        return 0.0f;
+    }
+    
+    return pulse_to_degrees_per_second(g_last_speed);
 }

@@ -64,13 +64,13 @@ const servo_config_t SERVO_CONFIG_POSITION_SG90 = {
 const servo_config_t SERVO_CONFIG_CONTINUOUS_STANDARD = {
     .pin = GPIO_NUM_14,
     .type = SERVO_TYPE_CONTINUOUS,
-    .min_pulse_us = 900,
-    .max_pulse_us = 2100,
-    .center_pulse_us = 1440,
+    .min_pulse_us = 900,     // MS-R-1.3-9 minimum pulse
+    .max_pulse_us = 2100,    // MS-R-1.3-9 maximum pulse
+    .center_pulse_us = 1440, // MS-R-1.3-9 center/stop pulse
     .frequency_hz = 50,
     .min_angle = 0,
     .max_angle = 0,
-    .speed = 25,
+    .speed = 50,             // Default to 50% speed
     .invert_direction = false
 };
 
