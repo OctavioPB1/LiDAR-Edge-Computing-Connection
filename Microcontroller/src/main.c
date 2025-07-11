@@ -108,11 +108,22 @@ int app_main(void)
                 return 1;
         }
         ESP_LOGI(TAG, "Servo Habilitado OK - Deberia estar moviendose!");
-        vTaskDelay(3000 / portTICK_PERIOD_MS);
+        //vTaskDelay(3000 / portTICK_PERIOD_MS);
 
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 4; i++)
         {
                 ESP_LOGI(TAG, "Leyendo angulo actual: %d grados", readAngle_simple());
+                err = servo_simple_pause();
+                if (err != ESP_OK)
+                {
+                        ESP_LOGE(TAG, "Error Pausing Servo:  %s", esp_err_to_name(err));
+                }
+                vTaskDelay(2000 / portTICK_PERIOD_MS);
+                err = servo_simple_start();
+                if (err != ESP_OK)
+                {
+                        ESP_LOGE(TAG, "Error Starting Servo:  %s", esp_err_to_name(err));
+                }
                 vTaskDelay(2000 / portTICK_PERIOD_MS);
         }
 

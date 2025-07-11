@@ -70,7 +70,7 @@ const servo_config_t SERVO_CONFIG_CONTINUOUS_STANDARD = {
     .frequency_hz = 50,
     .min_angle = 0,
     .max_angle = 0,
-    .speed = 50,
+    .speed = 25,
     .invert_direction = false
 };
 

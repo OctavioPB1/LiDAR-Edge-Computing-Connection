@@ -45,7 +45,7 @@ static const struct {
     uint8_t speed;
     servo_direction_t direction;
 } SPEED_MAPPING[] = {
-    {SERVO_MAX_SPEED_CW,     100, SERVO_DIR_CW},
+    {SERVO_MAX_SPEED_CW,     100,  SERVO_DIR_CW},
     {SERVO_MEDIUM_SPEED_CW,   50,  SERVO_DIR_CW},
     {SERVO_LOW_SPEED_CW,      25,  SERVO_DIR_CW},
     {SERVO_STOP,               0,  SERVO_DIR_STOP},
