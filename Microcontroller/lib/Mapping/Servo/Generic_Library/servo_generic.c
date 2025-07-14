@@ -528,30 +528,84 @@ static esp_err_t servo_set_pulse_width(servo_handle_t *handle, uint32_t pulse_wi
 
 static uint32_t angle_to_pulse(servo_handle_t *handle, uint16_t angle)
 {
-    uint32_t pulse_range = handle->config.max_pulse_us - handle->config.min_pulse_us;
     uint16_t angle_range = handle->config.max_angle - handle->config.min_angle;
     
     if (angle_range == 0) {
         return handle->config.center_pulse_us;
     }
     
-    uint32_t pulse = handle->config.min_pulse_us + 
-                     (uint32_t)((angle - handle->config.min_angle) * pulse_range / angle_range);
+    // Calculate center angle
+    uint16_t center_angle = (handle->config.min_angle + handle->config.max_angle) / 2;
+    
+    uint32_t pulse;
+    if (angle == center_angle) {
+        // Use exact center pulse for center angle
+        pulse = handle->config.center_pulse_us;
+    } else if (angle < center_angle) {
+        // Interpolate from min_pulse to center_pulse for angles below center
+        uint16_t lower_angle_range = center_angle - handle->config.min_angle;
+        uint32_t lower_pulse_range = handle->config.center_pulse_us - handle->config.min_pulse_us;
+        
+        if (lower_angle_range == 0) {
+            pulse = handle->config.min_pulse_us;
+        } else {
+            pulse = handle->config.min_pulse_us + 
+                    (uint32_t)((angle - handle->config.min_angle) * lower_pulse_range / lower_angle_range);
+        }
+    } else {
+        // Interpolate from center_pulse to max_pulse for angles above center
+        uint16_t upper_angle_range = handle->config.max_angle - center_angle;
+        uint32_t upper_pulse_range = handle->config.max_pulse_us - handle->config.center_pulse_us;
+        
+        if (upper_angle_range == 0) {
+            pulse = handle->config.max_pulse_us;
+        } else {
+            pulse = handle->config.center_pulse_us + 
+                    (uint32_t)((angle - center_angle) * upper_pulse_range / upper_angle_range);
+        }
+    }
     
     return pulse;
 }
 
 static uint16_t pulse_to_angle(servo_handle_t *handle, uint32_t pulse)
 {
-    uint32_t pulse_range = handle->config.max_pulse_us - handle->config.min_pulse_us;
     uint16_t angle_range = handle->config.max_angle - handle->config.min_angle;
     
-    if (pulse_range == 0 || angle_range == 0) {
+    if (angle_range == 0) {
         return handle->config.min_angle;
     }
     
-    uint16_t angle = handle->config.min_angle + 
-                     (uint16_t)((pulse - handle->config.min_pulse_us) * angle_range / pulse_range);
+    // Calculate center angle
+    uint16_t center_angle = (handle->config.min_angle + handle->config.max_angle) / 2;
+    
+    uint16_t angle;
+    if (pulse == handle->config.center_pulse_us) {
+        // Exact center pulse maps to center angle
+        angle = center_angle;
+    } else if (pulse < handle->config.center_pulse_us) {
+        // Interpolate from min_angle to center_angle for pulses below center
+        uint32_t lower_pulse_range = handle->config.center_pulse_us - handle->config.min_pulse_us;
+        uint16_t lower_angle_range = center_angle - handle->config.min_angle;
+        
+        if (lower_pulse_range == 0) {
+            angle = handle->config.min_angle;
+        } else {
+            angle = handle->config.min_angle + 
+                    (uint16_t)((pulse - handle->config.min_pulse_us) * lower_angle_range / lower_pulse_range);
+        }
+    } else {
+        // Interpolate from center_angle to max_angle for pulses above center
+        uint32_t upper_pulse_range = handle->config.max_pulse_us - handle->config.center_pulse_us;
+        uint16_t upper_angle_range = handle->config.max_angle - center_angle;
+        
+        if (upper_pulse_range == 0) {
+            angle = handle->config.max_angle;
+        } else {
+            angle = center_angle + 
+                    (uint16_t)((pulse - handle->config.center_pulse_us) * upper_angle_range / upper_pulse_range);
+        }
+    }
     
     return angle;
 }

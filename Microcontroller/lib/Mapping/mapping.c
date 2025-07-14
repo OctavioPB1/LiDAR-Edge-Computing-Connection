@@ -1,6 +1,6 @@
 #include "mapping.h"
-#include "servo_compatibility.h"
-#include "vl53l0x.h"
+#include "Servo/servo_compatibility.h"
+#include "LiDAR/vl53l0x.h"
 #include "esp_log.h"
 #include "debug_helper.h"
 

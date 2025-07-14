@@ -22,7 +22,7 @@
 #define VL53L0X_H
 
 #include "i2c_vl53l0x.h"
-#include "gpio.h"
+#include "../gpio/gpio.h"
 #include <stdbool.h>
 #include <stdint.h>
 

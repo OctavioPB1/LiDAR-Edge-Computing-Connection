@@ -20,7 +20,7 @@
 #include "cyclops_core.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "limit_switch.h"
+#include "Servo/limit_switch.h"
 #include "esp_log.h"
 #include "motors.h"
 #include "battery.h"
@@ -29,6 +29,7 @@
 #include "lights.h"
 #include "mqtt_server.h"
 #include "mapping.h"
+#include "Servo/servo_compatibility.h"
 #include "heap_trace_helper.h"
 #include "debug_helper.h"
 #include "client_mode.h"
@@ -40,6 +41,7 @@ TaskHandle_t receiveInstructionTaskHandler = NULL;
 TaskHandle_t batteryTaskHandler = NULL;
 TaskHandle_t mappingTaskHandler = NULL;
 TaskHandle_t checkRAMHandler = NULL;
+TaskHandle_t servoContinuousSweepTaskHandler = NULL;
 
 static void servoInterruptionTask(void *);
 static void receiveInstruction(void *);
@@ -48,6 +50,7 @@ static void executeInstruction(char *);
 static void mappingTask(void *);
 static void batteryTask(void *parameter);
 static void checkRAM(void *);
+static void servoContinuousSweepTask(void *);
 
 
 #define WIFI_MODE 0 // 0 -> Client Mode, 1 -> WiFi Mode
@@ -187,7 +190,7 @@ esp_err_t system_init()
  */
 esp_err_t createTasks()
 {
-    // // BACKGROUND TASKs
+    // BACKGROUND TASKs
     BaseType_t task_created;
     task_created = xTaskCreatePinnedToCore(
         servoInterruptionTask,         
@@ -205,7 +208,7 @@ esp_err_t createTasks()
         return ESP_FAIL; 
     }
 
-    // // MAIN TASKs
+    // MAIN TASKs
     
     task_created = xTaskCreatePinnedToCore(
         instructionHandler,
@@ -236,6 +239,21 @@ esp_err_t createTasks()
         DEBUGING_ESP_LOG(ESP_LOGE(TAG, "Error Creating  Receive Instruction Task"));
         return ESP_FAIL;
     }
+
+    // task_created = xTaskCreatePinnedToCore(
+    //     servoContinuousSweepTask,
+    //     "ServoContinuousSweepTask",
+    //     4096,
+    //     NULL,
+    //     2,
+    //     &servoContinuousSweepTaskHandler,
+    //     tskNO_AFFINITY);
+
+    // if (task_created != pdPASS)
+    // {
+    //     DEBUGING_ESP_LOG(ESP_LOGE(TAG, "Error Creating Servo Continuous Sweep Task"));
+    //     return ESP_FAIL; 
+    // }
 
     task_created = xTaskCreatePinnedToCore(
         mappingTask,
@@ -281,6 +299,7 @@ esp_err_t createTasks()
         DEBUGING_ESP_LOG(ESP_LOGE(TAG, "Error Creating check RAM Task"));
         return ESP_FAIL; 
     }
+
     return ESP_OK;
 }
 
@@ -311,6 +330,11 @@ void abort_tasks()
         vTaskDelete(batteryTaskHandler);
         batteryTaskHandler = NULL;
     }
+    // if (servoContinuousSweepTaskHandler != NULL)
+    // {
+    //     vTaskDelete(servoContinuousSweepTaskHandler);
+    //     servoContinuousSweepTaskHandler = NULL;
+    // }
     if (mappingTaskHandler != NULL)
     {
         vTaskDelete(mappingTaskHandler);
@@ -568,5 +592,34 @@ static void checkRAM(void *parameter)
         }
 
         vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
+}
+
+/**
+ * @brief Task function for continuous servo sweep.
+ * 
+ * This task handles continuous sweeping of the servo motor between 0° and 180°.
+ * The task is suspended by default and can be resumed/suspended as needed.
+ * 
+ * @param parameter Unused parameter.
+ */
+static void servoContinuousSweepTask(void *parameter)
+{
+    esp_err_t err;
+  
+    ESP_LOGI(TAG, "Servo continuous sweep task started");
+    
+    while (1)
+    {
+        // Call the servo continuous sweep function
+        err = servo_continuous_sweep();
+        if (err != ESP_OK)
+        {
+            ESP_LOGE(TAG, "Error in servo continuous sweep: %s", esp_err_to_name(err));
+            LOG_MESSAGE_E(TAG, "Error in servo continuous sweep");
+        }
+        
+        // Small delay to prevent excessive CPU usage
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
