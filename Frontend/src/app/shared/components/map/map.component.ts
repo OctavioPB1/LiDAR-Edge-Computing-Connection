@@ -1,6 +1,7 @@
 import { Component, OnInit, ElementRef } from '@angular/core';
 import { MappingValueService } from '../../../core/services/mapping-value.service';
 import * as d3 from 'd3';
+import { polarToCartesianScaled, CartesianCoordinate } from '../../utils/coordinate-transform.util';
 
 
 export interface Point {
@@ -28,10 +29,10 @@ export class MapComponent implements OnInit {
   private width = 850;
   private height = 850;
   private svg: any;
-  private maxDistance = 1; // Distancia máxima en metros
+  private maxDistance = 2; // Distancia máxima en metros (aumentada para LiDAR)
   private scaleFactor = this.width / (this.maxDistance * 2); // Escala para convertir metros a pixeles
   private pointsMap: Map<number, any> = new Map();
-  private pointLifetime = 5000; // Tiempo en milisegundos antes de borrar un punto
+  private pointLifetime = 2000; // Tiempo en milisegundos antes de borrar un punto
 
   private pointsToPlot: { distance: number; angle: number }[] = []; // Lista de puntos pendientes
   //private pointsMap = new Map<string, any>(); // Mapa para graficar puntos únicos
@@ -44,8 +45,8 @@ export class MapComponent implements OnInit {
    */
     ngOnInit() {
       this.createChart();
-     setInterval(() => this.receivePointsFromBackend(), 10); // Llama cada 500ms
-     setInterval(() => this.plotStoredPoints(), 10); // Graficar cada 100ms
+     setInterval(() => this.receivePointsFromBackend(), 1000); // Llama cada 1 segundo
+     setInterval(() => this.plotStoredPoints(), 50); // Graficar cada 50ms (más eficiente)
     }
 
   /**
@@ -79,10 +80,18 @@ export class MapComponent implements OnInit {
 
     this.pointsToPlot.forEach((point) => {
       // Convertir de polar (ángulo, distancia) a coordenadas cartesianas (x, y)
-      console.log("d,a: ",point.distance, point.angle)
-      const meters = point.distance/1000;
-      const { x, y } = this.polarToCartesian(meters, point.angle - 90);
-      console.log("Cartesian: ",x,y);
+      // console.log("d,a: ",point.distance, point.angle)
+      const meters = point.distance/250; // Convertir mm a metros correctamente
+      
+      // Filtrar puntos fuera del rango máximo
+      if (meters > this.maxDistance) {
+        // console.log(`Punto descartado: ${meters}m excede maxDistance de ${this.maxDistance}m`);
+        return;
+      }
+      
+      // Usar la función utilitaria mejorada
+      const { x, y } = this.robotCoordinatesToChart(meters, point.angle);
+      // console.log("Cartesian: ",x,y);
      
         const newPoint = this.svg
           .append('circle')
@@ -90,10 +99,15 @@ export class MapComponent implements OnInit {
           .attr('cy', y)
           .attr('r', 3)
           .attr('fill', 'black');
-          this.pointsMap.set(point.angle, newPoint);
-          setTimeout(() => {
-            newPoint.remove();
-          }, this.pointLifetime);
+          
+        // Generar ID único para el punto
+        const pointId = Date.now() + Math.random();
+        this.pointsMap.set(pointId, newPoint);
+        
+        setTimeout(() => {
+          newPoint.remove();
+          this.pointsMap.delete(pointId);
+        }, this.pointLifetime);
        
     });
 
@@ -153,7 +167,7 @@ export class MapComponent implements OnInit {
       .attr('fill', '#213A7D');
 
         // Dibujar las circunferencias con los radios dados
-        const radii = [0.25, 0.50, 0.75, 1]; // Radios en metros
+        const radii = [0.5, 1.0, 1.5, 2.0]; // Radios en metros (ajustados para maxDistance = 2m)
         radii.forEach(radius => {
             this.svg
               .append('circle')
@@ -183,21 +197,22 @@ export class MapComponent implements OnInit {
   
 
   /**
-   * Converts polar coordinates (distance and angle) to Cartesian coordinates (x, y).
-   * The angle is first converted to radians and used to calculate the x and y values based 
-   * on the distance and scale factor. The y-axis is inverted to fit the D3 coordinate system.
+   * Convierte coordenadas polares del robot a coordenadas para el gráfico
+   * Usa la función utilitaria polarToCartesianScaled para mayor reutilización
    * 
-   * @param distance The distance from the origin (in some unit).
-   * @param angle The angle in degrees.
-   * @returns The Cartesian coordinates (x, y).
+   * @param distance La distancia desde el origen (en metros)
+   * @param angle El ángulo en grados
+   * @returns Las coordenadas cartesianas (x, y) para el SVG
    */
-  polarToCartesian(distance: number, angle: number) {
-    const angle_pos = (angle+360) % 360;
-    console.log("Angle positivo: ", angle_pos);
-    const radians = (angle * Math.PI) / 180; // Convertir grados a radianes
-    const x = ( this.width / 2 ) + distance * this.scaleFactor * Math.cos(radians);
-    const y = ( this.height / 2 ) - distance * this.scaleFactor * Math.sin(radians); // Invertir eje Y para D3
-    return { x, y };
+  robotCoordinatesToChart(distance: number, angle: number): CartesianCoordinate {
+    return polarToCartesianScaled(
+      distance, 
+      angle, // Ajuste para que 0° sea hacia adelante del robot
+      this.scaleFactor, 
+      this.width / 2, 
+      this.height / 2, 
+      true // Invertir Y para SVG
+    );
   }
 
 
