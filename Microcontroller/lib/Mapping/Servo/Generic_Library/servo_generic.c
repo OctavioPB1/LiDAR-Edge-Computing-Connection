@@ -335,7 +335,7 @@ esp_err_t servo_generic_set_position(servo_handle_t *handle, uint16_t angle)
     ret = servo_set_pulse_width(handle, pulse);
     if (ret == ESP_OK) {
         handle->current_angle = angle;
-        ESP_LOGI(TAG, "Position set to %d degrees", angle);
+        //ESP_LOGI(TAG, "Position set to %d degrees", angle);
     }
     
     return ret;
@@ -480,7 +480,7 @@ esp_err_t servo_generic_move_smooth(servo_handle_t *handle, uint16_t target_angl
         vTaskDelay(pdMS_TO_TICKS(20));
     }
     
-    ESP_LOGI(TAG, "Smooth movement completed to %d degrees", target_angle);
+    //ESP_LOGI(TAG, "Smooth movement completed to %d degrees", target_angle);
     return ESP_OK;
 }
 

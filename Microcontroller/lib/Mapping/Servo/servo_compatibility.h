@@ -36,8 +36,8 @@
 // Frequency: 50Hz
 // Type: Position servo (not continuous rotation)
 
-#define SERVO_SG90_MIN_PULSE_US       400     // SG90 minimum pulse width (from main.c)
-#define SERVO_SG90_MAX_PULSE_US       1950    // SG90 maximum pulse width (from main.c)
+#define SERVO_SG90_MIN_PULSE_US       450     // SG90 minimum pulse width (from main.c)
+#define SERVO_SG90_MAX_PULSE_US       2150    // SG90 maximum pulse width (from main.c)
 #define SERVO_SG90_CENTER_PULSE_US    1000    // SG90 center pulse (90 degrees, from main.c)
 #define SERVO_SG90_VOLTAGE            5.0f    // Operating voltage
 #define SERVO_SG90_MIN_ANGLE          0       // Minimum angle

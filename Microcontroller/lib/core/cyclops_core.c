@@ -73,6 +73,31 @@ esp_err_t system_init()
 {
     esp_err_t err = ESP_OK;
 
+    // Initialize instruction buffer FIRST - before any tasks are created
+    DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Iniciando Instruction Buffer..."));
+    LOG_MESSAGE_I(TAG, "Iniciando Instruction Buffer...");
+    err = initBuffer();
+    if (err != ESP_OK)
+    {
+        DEBUGING_ESP_LOG(ESP_LOGE(TAG, "Error Initializing Instruction Buffer: %s", esp_err_to_name(err)));
+        LOG_MESSAGE_E(TAG, "Error Initializing Instruction Buffer");
+        return ESP_FAIL;
+    }
+    DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Instruction Buffer Iniciado!"));
+    LOG_MESSAGE_I(TAG, "Instruction Buffer Iniciado!");
+
+    // // Initialize limit switch interrupts BEFORE tasks are created
+    // DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Iniciando Limit Switch Interrupts..."));
+    // LOG_MESSAGE_I(TAG, "Iniciando Limit Switch Interrupts...");
+    // err = interrupt_init();
+    // if (err != ESP_OK)
+    // {
+    //     DEBUGING_ESP_LOG(ESP_LOGE(TAG, "Error Initializing Limit Switch Interrupts: %s", esp_err_to_name(err)));
+    //     LOG_MESSAGE_E(TAG, "Error Initializing Limit Switch Interrupts");
+    //     return ESP_FAIL;
+    // }
+    // DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Limit Switch Interrupts Iniciado!"));
+    // LOG_MESSAGE_I(TAG, "Limit Switch Interrupts Iniciado!");
 
     // err = start_heap_trace();
     // if (err != ESP_OK)
@@ -172,6 +197,9 @@ esp_err_t system_init()
     DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Battery Service Iniciado!"));
     LOG_MESSAGE_I(TAG, "Battery Service Iniciado!");
 
+    DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Sistema Iniciado!"));
+    //vTaskDelay(5000 / portTICK_PERIOD_MS);
+
     return err;
 }
 
@@ -192,24 +220,23 @@ esp_err_t createTasks()
 {
     // BACKGROUND TASKs
     BaseType_t task_created;
-    task_created = xTaskCreatePinnedToCore(
-        servoInterruptionTask,         
-        "ServoInterruptionTask",       
-        4096,                          
-        NULL,                         
-        1,                             
-        &servoInterruptionTaskHandler, 
-        tskNO_AFFINITY                 
-    );
+    // task_created = xTaskCreatePinnedToCore(
+    //     servoInterruptionTask,         
+    //     "ServoInterruptionTask",       
+    //     4096,                          
+    //     NULL,                         
+    //     1,                             
+    //     &servoInterruptionTaskHandler, 
+    //     tskNO_AFFINITY                 
+    // );
 
-    if (task_created != pdPASS)
-    {
-        DEBUGING_ESP_LOG(ESP_LOGE(TAG, "Error Creating Limit Switch cheking Task"));
-        return ESP_FAIL; 
-    }
+    // if (task_created != pdPASS)
+    // {
+    //     DEBUGING_ESP_LOG(ESP_LOGE(TAG, "Error Creating Limit Switch cheking Task"));
+    //     return ESP_FAIL; 
+    // }
 
     // MAIN TASKs
-    
     task_created = xTaskCreatePinnedToCore(
         instructionHandler,
         "InstructionsHandlerTask",
@@ -240,20 +267,20 @@ esp_err_t createTasks()
         return ESP_FAIL;
     }
 
-    // task_created = xTaskCreatePinnedToCore(
-    //     servoContinuousSweepTask,
-    //     "ServoContinuousSweepTask",
-    //     4096,
-    //     NULL,
-    //     2,
-    //     &servoContinuousSweepTaskHandler,
-    //     tskNO_AFFINITY);
+    task_created = xTaskCreatePinnedToCore(
+        servoContinuousSweepTask,
+        "ServoContinuousSweepTask",
+        4096,
+        NULL,
+        2,
+        &servoContinuousSweepTaskHandler,
+        tskNO_AFFINITY);
 
-    // if (task_created != pdPASS)
-    // {
-    //     DEBUGING_ESP_LOG(ESP_LOGE(TAG, "Error Creating Servo Continuous Sweep Task"));
-    //     return ESP_FAIL; 
-    // }
+    if (task_created != pdPASS)
+    {
+        DEBUGING_ESP_LOG(ESP_LOGE(TAG, "Error Creating Servo Continuous Sweep Task"));
+        return ESP_FAIL; 
+    }
 
     task_created = xTaskCreatePinnedToCore(
         mappingTask,
@@ -330,11 +357,11 @@ void abort_tasks()
         vTaskDelete(batteryTaskHandler);
         batteryTaskHandler = NULL;
     }
-    // if (servoContinuousSweepTaskHandler != NULL)
-    // {
-    //     vTaskDelete(servoContinuousSweepTaskHandler);
-    //     servoContinuousSweepTaskHandler = NULL;
-    // }
+    if (servoContinuousSweepTaskHandler != NULL)
+    {
+        vTaskDelete(servoContinuousSweepTaskHandler);
+        servoContinuousSweepTaskHandler = NULL;
+    }
     if (mappingTaskHandler != NULL)
     {
         vTaskDelete(mappingTaskHandler);
@@ -544,7 +571,7 @@ static void mappingTask(void *parameter)
         // else
         // {
         //     ESP_LOGW(TAG, "Dist: %u - Ang: %i", distance, angle);
-        //     sendMappingValue(distance, angle);
+        //     //sendMappingValue(distance, angle);
         // }
 
         switch(err){
@@ -554,6 +581,8 @@ static void mappingTask(void *parameter)
                 LOG_MESSAGE_E(TAG, "FAIL TO GET MAPPING VALUE");
                 break;
             case ESP_ERR_INVALID_RESPONSE:
+                ESP_LOGE(TAG, "Invalid LiDAR reading at angle %i", angle);
+                LOG_MESSAGE_E(TAG, "Invalid LiDAR reading at angle");
                 break;
             default:
                 ESP_LOGW(TAG, "Dist: %u - Ang: %i", distance, angle);
@@ -563,7 +592,7 @@ static void mappingTask(void *parameter)
 
         angle = 0;
         distance = 0;
-        vTaskDelay(4 / portTICK_PERIOD_MS);
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
 
