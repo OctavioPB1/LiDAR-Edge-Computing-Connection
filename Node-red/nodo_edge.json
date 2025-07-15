@@ -41,7 +41,8 @@
         "y": 1020,
         "wires": [
             [
-                "205d2d29f04d772e"
+                "205d2d29f04d772e",
+                "3adc1e4d19dd8a2b"
             ]
         ]
     },
@@ -93,7 +94,7 @@
         "type": "function",
         "z": "c30771c48096f533",
         "name": "(HTTP -> Server) Translation",
-        "func": "var tarea = msg.payload.Task;\nvar id_edge = flow.get('id_edge') || 0; //Si no está inicializada, lo hace\nid_edge++;\n\nmsg.payload = [{\n    measurement: \"nodoedgeMovements\",\n    fields: {\n        \"Task\": tarea,\n        \"Executed\": false,\n        \"RobotID\": 2\n    },\n    tags: {\n        \"ID\": id_edge\n    },\n    //'timestamp': new Date().getTime()\n}];\n\nflow.set('id_edge', id_edge);\nreturn msg;\n",
+        "func": "var tarea = msg.payload.Task;\nvar id_edge = flow.get('id_edge') || 0; //Si no está inicializada, lo hace\nid_edge++;\n\nmsg.payload = [{\n    measurement: \"nodoedgeMovements\",\n    fields: {\n        \"Task\": tarea,\n        \"Executed\": false,\n        \"RobotID\": 2\n    },\n    tags: {\n        \"ID\": id_edge\n    },\n    'timestamp': new Date().getTime()\n}];\n\nflow.set('id_edge', id_edge);\nreturn msg;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -465,7 +466,7 @@
         "type": "debug",
         "z": "c30771c48096f533",
         "name": "debug 12",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -1427,7 +1428,7 @@
         "type": "debug",
         "z": "c30771c48096f533",
         "name": "debug 44",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -1437,6 +1438,23 @@
         "statusType": "auto",
         "x": 660,
         "y": 1140,
+        "wires": []
+    },
+    {
+        "id": "3adc1e4d19dd8a2b",
+        "type": "debug",
+        "z": "c30771c48096f533",
+        "name": "debug 50",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 620,
+        "y": 980,
         "wires": []
     },
     {

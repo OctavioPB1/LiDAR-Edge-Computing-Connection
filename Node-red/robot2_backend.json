@@ -85,7 +85,7 @@
         "type": "function",
         "z": "3f5e27f1057c3b43",
         "name": "Setting \"read\" to True and parsing",
-        "func": "const data = msg.payload;\n\nconst level = data.level;\nconst id = data.id;\nconst timestamp = data.time ? new Date(data.time) : new Date();\n\nconst measurement = flow.get('batteryMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"level\": level,\n        \"read\": true\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': timestamp.getTime()\n    //'timestamp': timestamp.valueOf()\n}];\n\nreturn msg;\n",
+        "func": "const data = msg.payload;\n\nconst level = data.level;\nconst id = data.id;\nconst timestamp = data.time ? new Date(data.time) : new Date();\n\nconst measurement = flow.get('batteryMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"level\": level,\n        \"read\": true\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': data.time\n}];\n\nreturn msg;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -143,7 +143,7 @@
         "upload": false,
         "swaggerDoc": "",
         "x": 180,
-        "y": 1280,
+        "y": 1400,
         "wires": [
             [
                 "f7986180aacf65ef",
@@ -156,7 +156,7 @@
         "type": "function",
         "z": "3f5e27f1057c3b43",
         "name": "Query to insert instruction",
-        "func": "let instructionSet = [\n    \"Brake\", \n    \"Backward\", \n    \"Forward\",\n    \"Rotate Right\",\n    \"Rotate Left\",\n    \"SpeedUp\",\n    \"SpeedDown\",\n    \"Pause\",\n    \"Play\"\n    ]\n\nlet measurement = flow.get('instructionMeasurement');\nlet id = parseInt(flow.get('id_instruction'));\nlet task = msg.payload.instruction;\n\nvar exists = instructionSet.includes(task);\n\nif (!exists){\n    msg.payload = null;\n    return msg;\n}\n\nmsg.id_nodoEdge = msg.payload.id_nodoEdge;\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"instruction\": task,\n        \"read\": false\n    },\n    tags: {\n        \"id\": id\n    },\n    //'timestamp': timestamp.getTime()\n    'timestamp': new Date().valueOf()\n}];\n\nflow.set('id_instruction', id + 1);\n\nreturn msg;",
+        "func": "let instructionSet = [\n    \"Brake\", \n    \"Backward\", \n    \"Forward\",\n    \"Right\",\n    \"Left\",\n    \"SpeedUp\",\n    \"SpeedDown\",\n    \"Pause\",\n    \"Play\",\n    \"REBOOT\"\n    ]\n\nlet measurement = flow.get('instructionMeasurement');\nlet id = parseInt(flow.get('id_instruction'));\nlet task = msg.payload.instruction;\n\nvar exists = instructionSet.includes(task);\n\nif (!exists){\n    msg.payload = null;\n    return msg;\n}\n\nmsg.id_nodoEdge = msg.payload.id_nodoEdge;\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"instruction\": task,\n        \"read\": false\n    },\n    tags: {\n        \"id\": id\n    },\n    //'timestamp': timestamp.getTime()\n    'timestamp': new Date().valueOf()\n}];\n\nflow.set('id_instruction', id + 1);\n\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -164,7 +164,7 @@
         "finalize": "",
         "libs": [],
         "x": 450,
-        "y": 1280,
+        "y": 1400,
         "wires": [
             [
                 "ca18d0dd3e00ce3a"
@@ -183,8 +183,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 800,
-        "y": 1340,
+        "x": 900,
+        "y": 1440,
         "wires": [
             [
                 "a2c5745d2f04fcd2"
@@ -203,8 +203,8 @@
         "name": "",
         "statusCode": "",
         "headers": {},
-        "x": 990,
-        "y": 1320,
+        "x": 1130,
+        "y": 1440,
         "wires": []
     },
     {
@@ -214,7 +214,7 @@
         "name": "POST /instruction",
         "info": "",
         "x": 160,
-        "y": 1240,
+        "y": 1360,
         "wires": []
     },
     {
@@ -235,7 +235,7 @@
         "payload": "{\"id\":123,\"instruction\":\"Forward\",\"read\":false}",
         "payloadType": "json",
         "x": 180,
-        "y": 880,
+        "y": 1000,
         "wires": [
             []
         ]
@@ -255,7 +255,7 @@
         "expiry": "",
         "broker": "78b50610a06c74af",
         "x": 1150,
-        "y": 1380,
+        "y": 1480,
         "wires": []
     },
     {
@@ -288,8 +288,8 @@
         "retentionPolicyV18Flux": "",
         "org": "organisation",
         "bucket": "bucket",
-        "x": 860,
-        "y": 1280,
+        "x": 1080,
+        "y": 1400,
         "wires": []
     },
     {
@@ -321,7 +321,7 @@
         "upload": false,
         "swaggerDoc": "",
         "x": 190,
-        "y": 920,
+        "y": 1040,
         "wires": [
             [
                 "046b78848105d1d7",
@@ -342,7 +342,7 @@
         "finalize": "",
         "libs": [],
         "x": 660,
-        "y": 1040,
+        "y": 1160,
         "wires": [
             [
                 "8f19029c7d917eb7"
@@ -356,7 +356,7 @@
         "name": "GET /instruction/:ID",
         "info": "",
         "x": 630,
-        "y": 1000,
+        "y": 1120,
         "wires": []
     },
     {
@@ -530,7 +530,7 @@
         "finalize": "",
         "libs": [],
         "x": 1180,
-        "y": 1040,
+        "y": 1160,
         "wires": [
             [
                 "ef10f3bbb96087eb"
@@ -549,7 +549,7 @@
         "statusCode": "",
         "headers": {},
         "x": 1410,
-        "y": 1040,
+        "y": 1160,
         "wires": []
     },
     {
@@ -557,7 +557,7 @@
         "type": "function",
         "z": "3f5e27f1057c3b43",
         "name": "Setting \"read\" to True and parsing",
-        "func": "const data = msg.payload;\nconst instruction = data.instruction;\nconst id = data.id;\nconst timestamp = data.time ? new Date(data.time) : new Date();\nlet measurement = flow.get('instructionMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"instruction\": instruction,\n        \"read\": true\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': timestamp.getTime()\n    //'timestamp': timestamp.valueOf()\n}];\n\nreturn msg;\n",
+        "func": "const data = msg.payload;\nconst instruction = data.instruction;\nconst id = data.id;\nlet measurement = flow.get('instructionMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"instruction\": instruction,\n        \"read\": true\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': data.time\n}];\n\nreturn msg;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -565,7 +565,7 @@
         "finalize": "",
         "libs": [],
         "x": 1500,
-        "y": 1080,
+        "y": 1200,
         "wires": [
             [
                 "74db99f0f5f033ed"
@@ -586,7 +586,7 @@
         "org": "organisation",
         "bucket": "bucket",
         "x": 1780,
-        "y": 1080,
+        "y": 1200,
         "wires": []
     },
     {
@@ -601,7 +601,7 @@
         "retentionPolicy": "",
         "org": "organisation",
         "x": 920,
-        "y": 1040,
+        "y": 1160,
         "wires": [
             [
                 "b445449334533b4b"
@@ -618,7 +618,7 @@
         "upload": false,
         "swaggerDoc": "",
         "x": 170,
-        "y": 1160,
+        "y": 1280,
         "wires": [
             [
                 "6d4b199e0c06ba37",
@@ -633,7 +633,7 @@
         "name": "DELETE /instruction/:ID",
         "info": "",
         "x": 180,
-        "y": 1120,
+        "y": 1240,
         "wires": []
     },
     {
@@ -649,7 +649,7 @@
         "finalize": "",
         "libs": [],
         "x": 650,
-        "y": 920,
+        "y": 1040,
         "wires": [
             [
                 "94653b44a03e5062"
@@ -669,7 +669,7 @@
         "finalize": "",
         "libs": [],
         "x": 1180,
-        "y": 920,
+        "y": 1040,
         "wires": [
             [
                 "48c6ffe333365113"
@@ -688,7 +688,7 @@
         "statusCode": "",
         "headers": {},
         "x": 1410,
-        "y": 920,
+        "y": 1040,
         "wires": []
     },
     {
@@ -696,7 +696,7 @@
         "type": "function",
         "z": "3f5e27f1057c3b43",
         "name": "Setting \"read\" to True and parsing",
-        "func": "const data = msg.payload;\nconst instruction = data.instruction;\nconst id = data.id;\nconst timestamp = data.time ? new Date(data.time) : new Date();\nlet measurement = flow.get('instructionMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"instruction\": instruction,\n        \"read\": true\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': timestamp.getTime()\n    //'timestamp': timestamp.valueOf()\n}];\n\nreturn msg;\n",
+        "func": "const data = msg.payload;\nconst instruction = data.instruction;\nconst id = data.id;\nlet measurement = flow.get('instructionMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"instruction\": instruction,\n        \"read\": true\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': data.time\n}];\n\nreturn msg;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -704,7 +704,7 @@
         "finalize": "",
         "libs": [],
         "x": 1500,
-        "y": 960,
+        "y": 1080,
         "wires": [
             [
                 "bf6b3c54fd547ca8"
@@ -718,7 +718,7 @@
         "name": "GET /instruction/last",
         "info": "",
         "x": 630,
-        "y": 880,
+        "y": 1000,
         "wires": []
     },
     {
@@ -735,7 +735,7 @@
         "org": "organisation",
         "bucket": "bucket",
         "x": 1780,
-        "y": 960,
+        "y": 1080,
         "wires": []
     },
     {
@@ -750,7 +750,7 @@
         "retentionPolicy": "",
         "org": "organisation",
         "x": 900,
-        "y": 920,
+        "y": 1040,
         "wires": [
             [
                 "ba54521c32d78c64"
@@ -767,7 +767,7 @@
         "upload": false,
         "swaggerDoc": "",
         "x": 170,
-        "y": 1980,
+        "y": 2180,
         "wires": [
             [
                 "92d32347a592d181",
@@ -788,7 +788,7 @@
         "finalize": "",
         "libs": [],
         "x": 430,
-        "y": 1980,
+        "y": 2180,
         "wires": [
             [
                 "4debf93424b7ab4e",
@@ -809,7 +809,7 @@
         "finalize": "",
         "libs": [],
         "x": 700,
-        "y": 2040,
+        "y": 2240,
         "wires": [
             [
                 "5bf2acbfbe08b021"
@@ -828,7 +828,7 @@
         "statusCode": "",
         "headers": {},
         "x": 930,
-        "y": 2040,
+        "y": 2240,
         "wires": []
     },
     {
@@ -838,7 +838,7 @@
         "name": "POST /message",
         "info": "",
         "x": 160,
-        "y": 1940,
+        "y": 2140,
         "wires": []
     },
     {
@@ -859,7 +859,7 @@
         "payload": "{\"id\":123,\"message\":\"System maintenance\",\"type\":\"Notification\",\"tag\":\"system\",\"read\":false}",
         "payloadType": "json",
         "x": 180,
-        "y": 1580,
+        "y": 1780,
         "wires": [
             []
         ]
@@ -879,7 +879,7 @@
         "expiry": "",
         "broker": "78b50610a06c74af",
         "x": 940,
-        "y": 2080,
+        "y": 2280,
         "wires": []
     },
     {
@@ -896,7 +896,7 @@
         "org": "organisation",
         "bucket": "bucket",
         "x": 680,
-        "y": 1980,
+        "y": 2180,
         "wires": []
     },
     {
@@ -909,7 +909,7 @@
         "upload": false,
         "swaggerDoc": "",
         "x": 180,
-        "y": 1620,
+        "y": 1820,
         "wires": [
             [
                 "933dbbcd159a80c6",
@@ -930,7 +930,7 @@
         "finalize": "",
         "libs": [],
         "x": 640,
-        "y": 1740,
+        "y": 1940,
         "wires": [
             [
                 "c814bae8b5cb77ce"
@@ -944,7 +944,7 @@
         "name": "GET /message/:ID",
         "info": "",
         "x": 610,
-        "y": 1700,
+        "y": 1900,
         "wires": []
     },
     {
@@ -960,7 +960,7 @@
         "finalize": "",
         "libs": [],
         "x": 1160,
-        "y": 1740,
+        "y": 1940,
         "wires": [
             [
                 "67818b839e3c6f38"
@@ -979,7 +979,7 @@
         "statusCode": "",
         "headers": {},
         "x": 1390,
-        "y": 1740,
+        "y": 1940,
         "wires": []
     },
     {
@@ -987,7 +987,7 @@
         "type": "function",
         "z": "3f5e27f1057c3b43",
         "name": "Setting \"read\" to True and parsing",
-        "func": "const data = msg.payload;\nconst message = data.message;\nconst type = data.type;\nconst tag = data.tag;\nconst id = data.id;\nconst timestamp = data.time ? new Date(data.time) : new Date();\nlet measurement = flow.get('messageMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"message\": message,\n        \"type\": type,\n        \"tag\": tag,\n        \"read\": true\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': timestamp.getTime()\n    //'timestamp': new Date().valueOf()\n}];\n\nreturn msg;\n",
+        "func": "const data = msg.payload;\nconst message = data.message;\nconst type = data.type;\nconst tag = data.tag;\nconst id = data.id;\nlet measurement = flow.get('messageMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"message\": message,\n        \"type\": type,\n        \"tag\": tag,\n        \"read\": true\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': data.time\n}];\n\nreturn msg;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -995,7 +995,7 @@
         "finalize": "",
         "libs": [],
         "x": 1480,
-        "y": 1780,
+        "y": 1980,
         "wires": [
             [
                 "6a3bbe9276e0ca90"
@@ -1016,7 +1016,7 @@
         "org": "organisation",
         "bucket": "bucket",
         "x": 1760,
-        "y": 1780,
+        "y": 1980,
         "wires": []
     },
     {
@@ -1031,7 +1031,7 @@
         "retentionPolicy": "",
         "org": "organisation",
         "x": 900,
-        "y": 1740,
+        "y": 1940,
         "wires": [
             [
                 "3ce25f0ba1c16252"
@@ -1045,7 +1045,7 @@
         "name": "Instruction Flow‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ",
         "info": "",
         "x": 900,
-        "y": 820,
+        "y": 940,
         "wires": []
     },
     {
@@ -1055,7 +1055,7 @@
         "name": "Message Flow‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ",
         "info": "",
         "x": 900,
-        "y": 1520,
+        "y": 1720,
         "wires": []
     },
     {
@@ -1306,7 +1306,7 @@
         "upload": false,
         "swaggerDoc": "",
         "x": 170,
-        "y": 1860,
+        "y": 2060,
         "wires": [
             [
                 "8ab69efd93168f25",
@@ -1327,7 +1327,7 @@
         "finalize": "",
         "libs": [],
         "x": 1340,
-        "y": 1860,
+        "y": 2060,
         "wires": [
             [
                 "56ab0c6dd72029ef"
@@ -1341,7 +1341,7 @@
         "name": "DELETE /message/:ID",
         "info": "",
         "x": 180,
-        "y": 1820,
+        "y": 2020,
         "wires": []
     },
     {
@@ -1357,7 +1357,7 @@
         "finalize": "",
         "libs": [],
         "x": 2410,
-        "y": 1860,
+        "y": 2060,
         "wires": [
             [
                 "778f3436d5abc915"
@@ -1372,7 +1372,7 @@
         "statusCode": "",
         "headers": {},
         "x": 2570,
-        "y": 1860,
+        "y": 2060,
         "wires": []
     },
     {
@@ -1387,7 +1387,7 @@
         "retentionPolicy": "",
         "org": "organisation",
         "x": 1600,
-        "y": 1860,
+        "y": 2060,
         "wires": [
             [
                 "7737a8c4acbf1aa0"
@@ -1407,7 +1407,7 @@
         "finalize": "",
         "libs": [],
         "x": 630,
-        "y": 1620,
+        "y": 1820,
         "wires": [
             [
                 "20143ebbe1c27496"
@@ -1427,7 +1427,7 @@
         "finalize": "",
         "libs": [],
         "x": 1160,
-        "y": 1620,
+        "y": 1820,
         "wires": [
             [
                 "42c9008ebd592b5b"
@@ -1446,7 +1446,7 @@
         "statusCode": "",
         "headers": {},
         "x": 1390,
-        "y": 1620,
+        "y": 1820,
         "wires": []
     },
     {
@@ -1454,7 +1454,7 @@
         "type": "function",
         "z": "3f5e27f1057c3b43",
         "name": "Setting \"read\" to True and parsing",
-        "func": "const data = msg.payload;\nconst message = data.message;\nconst type = data.type;\nconst tag = data.tag;\nconst id = data.id;\nconst timestamp = data.time ? new Date(data.time) : new Date();\nlet measurement = flow.get('messageMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"message\": message,\n        \"type\": type,\n        \"tag\": tag,\n        \"read\": true\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': timestamp.getTime()\n    //'timestamp': new Date().valueOf()\n}];\n\nreturn msg;\n",
+        "func": "const data = msg.payload;\nconst message = data.message;\nconst type = data.type;\nconst tag = data.tag;\nconst id = data.id;\nlet measurement = flow.get('messageMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"message\": message,\n        \"type\": type,\n        \"tag\": tag,\n        \"read\": true\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': data.time\n}];\n\nreturn msg;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -1462,7 +1462,7 @@
         "finalize": "",
         "libs": [],
         "x": 1480,
-        "y": 1660,
+        "y": 1860,
         "wires": [
             [
                 "21a3eff861be5270"
@@ -1476,7 +1476,7 @@
         "name": "GET /message/last",
         "info": "",
         "x": 610,
-        "y": 1580,
+        "y": 1780,
         "wires": []
     },
     {
@@ -1493,7 +1493,7 @@
         "org": "organisation",
         "bucket": "bucket",
         "x": 1760,
-        "y": 1660,
+        "y": 1860,
         "wires": []
     },
     {
@@ -1508,7 +1508,7 @@
         "retentionPolicy": "",
         "org": "organisation",
         "x": 880,
-        "y": 1620,
+        "y": 1820,
         "wires": [
             [
                 "3b8e9d4a31f7af6f"
@@ -1525,7 +1525,7 @@
         "upload": false,
         "swaggerDoc": "",
         "x": 190,
-        "y": 2720,
+        "y": 3040,
         "wires": [
             [
                 "7fae1bb032698ce0",
@@ -1546,7 +1546,7 @@
         "finalize": "",
         "libs": [],
         "x": 490,
-        "y": 2720,
+        "y": 3040,
         "wires": [
             [
                 "be54483e368f73b0",
@@ -1567,7 +1567,7 @@
         "finalize": "",
         "libs": [],
         "x": 780,
-        "y": 2780,
+        "y": 3100,
         "wires": [
             [
                 "42290b067a074f8a"
@@ -1586,7 +1586,7 @@
         "statusCode": "",
         "headers": {},
         "x": 1010,
-        "y": 2780,
+        "y": 3100,
         "wires": []
     },
     {
@@ -1596,7 +1596,7 @@
         "name": "POST /mappingValue",
         "info": "",
         "x": 180,
-        "y": 2680,
+        "y": 3000,
         "wires": []
     },
     {
@@ -1617,7 +1617,7 @@
         "payload": "{\"id\":123,\"distance\":\"1200\",\"angle\":\"45\",\"read\":false}",
         "payloadType": "json",
         "x": 190,
-        "y": 2320,
+        "y": 2640,
         "wires": [
             []
         ]
@@ -1637,7 +1637,7 @@
         "expiry": "",
         "broker": "78b50610a06c74af",
         "x": 1040,
-        "y": 2820,
+        "y": 3140,
         "wires": []
     },
     {
@@ -1654,7 +1654,7 @@
         "org": "organisation",
         "bucket": "bucket",
         "x": 760,
-        "y": 2720,
+        "y": 3040,
         "wires": []
     },
     {
@@ -1667,7 +1667,7 @@
         "upload": false,
         "swaggerDoc": "",
         "x": 210,
-        "y": 2360,
+        "y": 2680,
         "wires": [
             [
                 "404fdc9dd277b013",
@@ -1688,7 +1688,7 @@
         "finalize": "",
         "libs": [],
         "x": 710,
-        "y": 2480,
+        "y": 2800,
         "wires": [
             [
                 "264f0b17cdda9d2e"
@@ -1702,7 +1702,7 @@
         "name": "GET /mappingValue/:ID",
         "info": "",
         "x": 680,
-        "y": 2440,
+        "y": 2760,
         "wires": []
     },
     {
@@ -1718,7 +1718,7 @@
         "finalize": "",
         "libs": [],
         "x": 1240,
-        "y": 2480,
+        "y": 2800,
         "wires": [
             [
                 "1569fc796df1cbcd"
@@ -1737,7 +1737,7 @@
         "statusCode": "",
         "headers": {},
         "x": 1470,
-        "y": 2480,
+        "y": 2800,
         "wires": []
     },
     {
@@ -1745,7 +1745,7 @@
         "type": "function",
         "z": "3f5e27f1057c3b43",
         "name": "Setting \"read\" to True and parsing",
-        "func": "const data = msg.payload;\nconst distance = data.distance;\nconst angle = data.angle;\nconst id = data.id;\nconst timestamp = data.time ? new Date(data.time) : new Date();\nlet measurement = flow.get('mappingValueMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"distance\": distance,\n        \"angle\": angle,\n        \"read\": true\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': timestamp.getTime()\n}];\n\nreturn msg;\n",
+        "func": "const data = msg.payload;\nconst distance = data.distance;\nconst angle = data.angle;\nconst id = data.id;\nlet measurement = flow.get('mappingValueMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"distance\": distance,\n        \"angle\": angle,\n        \"read\": true\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': data.time\n}];\n\nreturn msg;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -1753,7 +1753,7 @@
         "finalize": "",
         "libs": [],
         "x": 1560,
-        "y": 2520,
+        "y": 2840,
         "wires": [
             [
                 "5b458fb0dc81b554"
@@ -1774,7 +1774,7 @@
         "org": "organisation",
         "bucket": "bucket",
         "x": 1840,
-        "y": 2520,
+        "y": 2840,
         "wires": []
     },
     {
@@ -1789,7 +1789,7 @@
         "retentionPolicy": "",
         "org": "organisation",
         "x": 980,
-        "y": 2480,
+        "y": 2800,
         "wires": [
             [
                 "339a12c5443f9fe2"
@@ -1803,7 +1803,7 @@
         "name": "MappingValue Flow‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ",
         "info": "",
         "x": 900,
-        "y": 2260,
+        "y": 2580,
         "wires": []
     },
     {
@@ -1816,7 +1816,7 @@
         "upload": false,
         "swaggerDoc": "",
         "x": 190,
-        "y": 2600,
+        "y": 2920,
         "wires": [
             [
                 "7d2380563d3a4dd3",
@@ -1831,7 +1831,7 @@
         "name": "DELETE /mappingValue/:ID",
         "info": "",
         "x": 200,
-        "y": 2560,
+        "y": 2880,
         "wires": []
     },
     {
@@ -1847,7 +1847,7 @@
         "finalize": "",
         "libs": [],
         "x": 720,
-        "y": 2360,
+        "y": 2680,
         "wires": [
             [
                 "b70afee55ad29e2b"
@@ -1867,7 +1867,7 @@
         "finalize": "",
         "libs": [],
         "x": 1260,
-        "y": 2360,
+        "y": 2680,
         "wires": [
             [
                 "960a1e386d68e929"
@@ -1886,7 +1886,7 @@
         "statusCode": "",
         "headers": {},
         "x": 1490,
-        "y": 2360,
+        "y": 2680,
         "wires": []
     },
     {
@@ -1894,7 +1894,7 @@
         "type": "function",
         "z": "3f5e27f1057c3b43",
         "name": "Setting \"read\" to True and parsing",
-        "func": "let measurement = flow.get('mappingValueMeasurement');\n\nlet resul = []\n\nmsg.payload.forEach(function(data) {\n    const timestamp = data.time ? new Date(data.time) : new Date();\n    resul.push({\n        measurement: measurement,\n        fields: {\n            \"distance\": data.distance,\n            \"angle\": data.angle,\n            \"read\": true\n        },\n        tags: {\n            \"id\": data.id\n        },\n        'timestamp': timestamp.getTime()\n    });\n});\n\nmsg.payload = resul;\nreturn msg;\n",
+        "func": "let measurement = flow.get('mappingValueMeasurement');\n\nlet resul = []\n\nmsg.payload.forEach(function(data) {\n    resul.push({\n        measurement: measurement,\n        fields: {\n            \"distance\": data.distance,\n            \"angle\": data.angle,\n            \"read\": true\n        },\n        tags: {\n            \"id\": data.id\n        },\n        'timestamp': data.time\n    });\n});\n\nmsg.payload = resul;\nreturn msg;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -1902,7 +1902,7 @@
         "finalize": "",
         "libs": [],
         "x": 1580,
-        "y": 2400,
+        "y": 2720,
         "wires": [
             [
                 "b01c548e3a91e7ab"
@@ -1916,7 +1916,7 @@
         "name": "GET /mappingValue/values",
         "info": "",
         "x": 690,
-        "y": 2320,
+        "y": 2640,
         "wires": []
     },
     {
@@ -1933,7 +1933,7 @@
         "org": "organisation",
         "bucket": "bucket",
         "x": 1860,
-        "y": 2400,
+        "y": 2720,
         "wires": []
     },
     {
@@ -1948,7 +1948,7 @@
         "retentionPolicy": "",
         "org": "organisation",
         "x": 1000,
-        "y": 2360,
+        "y": 2680,
         "wires": [
             [
                 "eb4b546de22e5187"
@@ -2104,7 +2104,7 @@
         "rh": 0,
         "inputs": 0,
         "x": 140,
-        "y": 2140,
+        "y": 2340,
         "wires": [
             [
                 "e5141a4245689159",
@@ -2125,7 +2125,7 @@
         "finalize": "",
         "libs": [],
         "x": 380,
-        "y": 2140,
+        "y": 2340,
         "wires": [
             [
                 "194c58418ddf970d"
@@ -2146,7 +2146,7 @@
         "org": "organisation",
         "bucket": "bucket",
         "x": 640,
-        "y": 2140,
+        "y": 2340,
         "wires": []
     },
     {
@@ -2163,7 +2163,7 @@
         "rh": 0,
         "inputs": 0,
         "x": 140,
-        "y": 2880,
+        "y": 3200,
         "wires": [
             [
                 "1ab4c2115ec38134",
@@ -2184,7 +2184,7 @@
         "finalize": "",
         "libs": [],
         "x": 400,
-        "y": 2880,
+        "y": 3200,
         "wires": [
             [
                 "4aeb74f3d2f64d29"
@@ -2205,7 +2205,7 @@
         "org": "organisation",
         "bucket": "bucket",
         "x": 680,
-        "y": 2880,
+        "y": 3200,
         "wires": []
     },
     {
@@ -2214,8 +2214,8 @@
         "z": "3f5e27f1057c3b43",
         "name": "<- Envía al Robot",
         "info": "",
-        "x": 1310,
-        "y": 1380,
+        "x": 1320,
+        "y": 1480,
         "wires": []
     },
     {
@@ -2225,7 +2225,7 @@
         "name": "<- Envía al Robot",
         "info": "",
         "x": 1100,
-        "y": 2080,
+        "y": 2280,
         "wires": []
     },
     {
@@ -2235,7 +2235,7 @@
         "name": "<- Envía al Robot",
         "info": "",
         "x": 1220,
-        "y": 2820,
+        "y": 3140,
         "wires": []
     },
     {
@@ -2261,7 +2261,7 @@
         "finalize": "",
         "libs": [],
         "x": 420,
-        "y": 920,
+        "y": 1040,
         "wires": [
             [
                 "df50fd53ca57ffe0"
@@ -2284,7 +2284,7 @@
         "finalize": "",
         "libs": [],
         "x": 400,
-        "y": 1620,
+        "y": 1820,
         "wires": [
             [
                 "4ea0567aaf127113"
@@ -2307,7 +2307,7 @@
         "finalize": "",
         "libs": [],
         "x": 1900,
-        "y": 1860,
+        "y": 2060,
         "wires": [
             [
                 "7d9db0bed61de585"
@@ -2326,7 +2326,7 @@
         "retentionPolicy": "",
         "org": "organisation",
         "x": 2200,
-        "y": 1860,
+        "y": 2060,
         "wires": [
             [
                 "b6e9073c375f0d50"
@@ -2345,7 +2345,7 @@
         "retentionPolicy": "",
         "org": "organisation",
         "x": 780,
-        "y": 1860,
+        "y": 2060,
         "wires": [
             [
                 "5d5d9586f05c3c64"
@@ -2365,7 +2365,7 @@
         "finalize": "",
         "libs": [],
         "x": 1040,
-        "y": 1860,
+        "y": 2060,
         "wires": [
             [
                 "da9bd18fd5224780"
@@ -2383,7 +2383,7 @@
         "statusCode": "",
         "headers": {},
         "x": 1270,
-        "y": 1900,
+        "y": 2100,
         "wires": []
     },
     {
@@ -2399,7 +2399,7 @@
         "finalize": "",
         "libs": [],
         "x": 480,
-        "y": 1860,
+        "y": 2060,
         "wires": [
             [
                 "a7ddedeb0505f4c4"
@@ -2419,7 +2419,7 @@
         "finalize": "",
         "libs": [],
         "x": 1340,
-        "y": 1160,
+        "y": 1280,
         "wires": [
             [
                 "cbcde651a95fc3be"
@@ -2438,7 +2438,7 @@
         "retentionPolicy": "",
         "org": "organisation",
         "x": 1600,
-        "y": 1160,
+        "y": 1280,
         "wires": [
             [
                 "c60c5b6082f5cd3a"
@@ -2458,7 +2458,7 @@
         "finalize": "",
         "libs": [],
         "x": 480,
-        "y": 1160,
+        "y": 1280,
         "wires": [
             [
                 "6e38aab0527d1770"
@@ -2477,7 +2477,7 @@
         "retentionPolicy": "",
         "org": "organisation",
         "x": 780,
-        "y": 1160,
+        "y": 1280,
         "wires": [
             [
                 "99de98ece1f5ace7"
@@ -2497,7 +2497,7 @@
         "finalize": "",
         "libs": [],
         "x": 1040,
-        "y": 1160,
+        "y": 1280,
         "wires": [
             [
                 "bbbd3a73fb6f511c"
@@ -2515,7 +2515,7 @@
         "statusCode": "",
         "headers": {},
         "x": 1270,
-        "y": 1200,
+        "y": 1320,
         "wires": []
     },
     {
@@ -2531,7 +2531,7 @@
         "finalize": "",
         "libs": [],
         "x": 2410,
-        "y": 1160,
+        "y": 1280,
         "wires": [
             [
                 "67438e8b0b479d32"
@@ -2546,7 +2546,7 @@
         "statusCode": "",
         "headers": {},
         "x": 2570,
-        "y": 1160,
+        "y": 1280,
         "wires": []
     },
     {
@@ -2562,7 +2562,7 @@
         "finalize": "",
         "libs": [],
         "x": 1900,
-        "y": 1160,
+        "y": 1280,
         "wires": [
             [
                 "597dbb22494bc404"
@@ -2581,7 +2581,7 @@
         "retentionPolicy": "",
         "org": "organisation",
         "x": 2200,
-        "y": 1160,
+        "y": 1280,
         "wires": [
             [
                 "baf7a5eeec9c2bb0"
@@ -2601,7 +2601,7 @@
         "finalize": "",
         "libs": [],
         "x": 1400,
-        "y": 2600,
+        "y": 2920,
         "wires": [
             [
                 "690f75ff4b66f913"
@@ -2620,7 +2620,7 @@
         "retentionPolicy": "",
         "org": "organisation",
         "x": 1680,
-        "y": 2600,
+        "y": 2920,
         "wires": [
             [
                 "1124b462c404cd7e"
@@ -2640,7 +2640,7 @@
         "finalize": "",
         "libs": [],
         "x": 520,
-        "y": 2600,
+        "y": 2920,
         "wires": [
             [
                 "8fabd61728a09796"
@@ -2659,7 +2659,7 @@
         "retentionPolicy": "",
         "org": "organisation",
         "x": 820,
-        "y": 2600,
+        "y": 2920,
         "wires": [
             [
                 "2359831df418d094"
@@ -2679,7 +2679,7 @@
         "finalize": "",
         "libs": [],
         "x": 1080,
-        "y": 2600,
+        "y": 2920,
         "wires": [
             [
                 "519e551f8fee46e1"
@@ -2697,7 +2697,7 @@
         "statusCode": "",
         "headers": {},
         "x": 1310,
-        "y": 2640,
+        "y": 2960,
         "wires": []
     },
     {
@@ -2713,7 +2713,7 @@
         "finalize": "",
         "libs": [],
         "x": 2490,
-        "y": 2600,
+        "y": 2920,
         "wires": [
             [
                 "e38bd4e9b5d39ea7"
@@ -2728,7 +2728,7 @@
         "statusCode": "",
         "headers": {},
         "x": 2650,
-        "y": 2600,
+        "y": 2920,
         "wires": []
     },
     {
@@ -2744,7 +2744,7 @@
         "finalize": "",
         "libs": [],
         "x": 1980,
-        "y": 2600,
+        "y": 2920,
         "wires": [
             [
                 "7dfa22f8a15b8fa4"
@@ -2763,7 +2763,7 @@
         "retentionPolicy": "",
         "org": "organisation",
         "x": 2280,
-        "y": 2600,
+        "y": 2920,
         "wires": [
             [
                 "35972d473d1f4bb9"
@@ -2783,7 +2783,7 @@
         "finalize": "",
         "libs": [],
         "x": 470,
-        "y": 2360,
+        "y": 2680,
         "wires": [
             [
                 "5f43fa1186268c95"
@@ -2800,7 +2800,7 @@
         "name": "MQTT Tests‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ‎ ",
         "info": "",
         "x": 900,
-        "y": 3120,
+        "y": 3440,
         "wires": []
     },
     {
@@ -2821,7 +2821,7 @@
         "payload": "{\"tag\":\"BATTERY\",\"type\":\"WARNING\",\"message\":\"Voltage out of expected range\"}",
         "payloadType": "json",
         "x": 120,
-        "y": 3240,
+        "y": 3560,
         "wires": [
             [
                 "69bd80992927131b"
@@ -2846,7 +2846,7 @@
         "payload": "{\"level\":\"0\"}",
         "payloadType": "json",
         "x": 110,
-        "y": 3180,
+        "y": 3500,
         "wires": [
             [
                 "7f2ed9ca8e69899c"
@@ -2871,7 +2871,7 @@
         "payload": "{\"distance\":\"322\",\"angle\":\"-241\"}",
         "payloadType": "json",
         "x": 120,
-        "y": 3300,
+        "y": 3620,
         "wires": [
             [
                 "24c5930338d3c02b"
@@ -2893,7 +2893,7 @@
         "expiry": "",
         "broker": "78b50610a06c74af",
         "x": 340,
-        "y": 3180,
+        "y": 3500,
         "wires": []
     },
     {
@@ -2911,7 +2911,7 @@
         "expiry": "",
         "broker": "78b50610a06c74af",
         "x": 340,
-        "y": 3300,
+        "y": 3620,
         "wires": []
     },
     {
@@ -2929,7 +2929,7 @@
         "expiry": "",
         "broker": "78b50610a06c74af",
         "x": 350,
-        "y": 3240,
+        "y": 3560,
         "wires": []
     },
     {
@@ -2954,7 +2954,7 @@
         "type": "debug",
         "z": "3f5e27f1057c3b43",
         "name": "debug 2",
-        "active": false,
+        "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -2980,7 +2980,7 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 420,
-        "y": 960,
+        "y": 1080,
         "wires": []
     },
     {
@@ -2997,7 +2997,7 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 380,
-        "y": 1200,
+        "y": 1320,
         "wires": []
     },
     {
@@ -3005,7 +3005,7 @@
         "type": "debug",
         "z": "3f5e27f1057c3b43",
         "name": "debug 5",
-        "active": false,
+        "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -3014,7 +3014,7 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 400,
-        "y": 1320,
+        "y": 1440,
         "wires": []
     },
     {
@@ -3031,7 +3031,7 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 400,
-        "y": 1660,
+        "y": 1860,
         "wires": []
     },
     {
@@ -3048,7 +3048,7 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 380,
-        "y": 1900,
+        "y": 2100,
         "wires": []
     },
     {
@@ -3065,7 +3065,7 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 380,
-        "y": 2020,
+        "y": 2220,
         "wires": []
     },
     {
@@ -3082,7 +3082,7 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 320,
-        "y": 2180,
+        "y": 2380,
         "wires": []
     },
     {
@@ -3099,7 +3099,7 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 460,
-        "y": 2400,
+        "y": 2720,
         "wires": []
     },
     {
@@ -3116,7 +3116,7 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 420,
-        "y": 2640,
+        "y": 2960,
         "wires": []
     },
     {
@@ -3133,7 +3133,7 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 420,
-        "y": 2760,
+        "y": 3080,
         "wires": []
     },
     {
@@ -3150,7 +3150,7 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 330,
-        "y": 2920,
+        "y": 3240,
         "wires": []
     },
     {
@@ -3204,8 +3204,8 @@
         "correl": "",
         "expiry": "",
         "broker": "9eebed49fee1d835",
-        "x": 1430,
-        "y": 1440,
+        "x": 1450,
+        "y": 1540,
         "wires": []
     },
     {
@@ -3213,7 +3213,7 @@
         "type": "function",
         "z": "3f5e27f1057c3b43",
         "name": "Sending echo to NodoEdge",
-        "func": "const map = new Map([\n    [\"Forward\", \"adelante\"],\n    [\"Backward\", \"atras\"],\n    [\"Rotate Left\", \"izquierda\"],\n    [\"Rotate Right\", \"derecha\"],\n    [\"Brake\", \"parar\"],\n])\n\nmsg.payload = {\n    Task: map.get(msg.payload.instruction),\n    id_nodoEdge: msg.id_nodoEdge,\n    robotID: flow.get('robotID') || 2\n}\n\nreturn msg;",
+        "func": "const map = new Map([\n    [\"Forward\", \"adelante\"],\n    [\"Backward\", \"atras\"],\n    [\"Rotate Left\", \"izquierda\"],\n    [\"Rotate Right\", \"derecha\"],\n    [\"Brake\", \"parar\"],\n])\n\nif (msg.id_nodoEdge) {\n    msg.payload = {\n        Task: map.get(msg.payload.instruction),\n        id_nodoEdge: msg.id_nodoEdge,\n        robotID: flow.get('robotID') || 2\n    }\n\n    return msg;\n}\nreturn null;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -3221,7 +3221,7 @@
         "finalize": "",
         "libs": [],
         "x": 1200,
-        "y": 1440,
+        "y": 1540,
         "wires": [
             [
                 "d27228793a962ad7"
@@ -3260,12 +3260,10 @@
         "once": false,
         "onceDelay": 0.1,
         "topic": "",
-        "x": 1250,
-        "y": 1240,
+        "x": 1770,
+        "y": 1380,
         "wires": [
-            [
-                "58f7aebc55d43a05"
-            ]
+            []
         ]
     },
     {
@@ -3300,12 +3298,10 @@
         "once": false,
         "onceDelay": 0.1,
         "topic": "",
-        "x": 1250,
-        "y": 1280,
+        "x": 1770,
+        "y": 1420,
         "wires": [
-            [
-                "58f7aebc55d43a05"
-            ]
+            []
         ]
     },
     {
@@ -3320,8 +3316,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 610,
-        "y": 1420,
+        "x": 670,
+        "y": 1400,
         "wires": [
             [
                 "f8f6e1c99046f8df",
@@ -3342,8 +3338,8 @@
         "complete": "false",
         "statusVal": "",
         "statusType": "auto",
-        "x": 700,
-        "y": 1220,
+        "x": 840,
+        "y": 1360,
         "wires": []
     },
     {
@@ -3363,8 +3359,8 @@
         "drop": false,
         "allowrate": false,
         "outputs": 1,
-        "x": 690,
-        "y": 1260,
+        "x": 850,
+        "y": 1400,
         "wires": [
             [
                 "cab52bb542308489"
@@ -3389,7 +3385,7 @@
         "payload": "",
         "payloadType": "str",
         "x": 150,
-        "y": 3040,
+        "y": 3360,
         "wires": [
             [
                 "19951deb3a516051"
@@ -3409,7 +3405,7 @@
         "finalize": "",
         "libs": [],
         "x": 300,
-        "y": 3040,
+        "y": 3360,
         "wires": [
             [
                 "ce9ac85f12f61169",
@@ -3422,7 +3418,7 @@
         "type": "debug",
         "z": "3f5e27f1057c3b43",
         "name": "debug 46",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -3431,7 +3427,7 @@
         "statusVal": "",
         "statusType": "auto",
         "x": 480,
-        "y": 3000,
+        "y": 3320,
         "wires": []
     },
     {
@@ -3446,7 +3442,7 @@
         "retentionPolicy": "",
         "org": "organisation",
         "x": 520,
-        "y": 3040,
+        "y": 3360,
         "wires": [
             []
         ]
@@ -3458,7 +3454,277 @@
         "name": "TTL de 30 segundos",
         "info": "",
         "x": 170,
-        "y": 3000,
+        "y": 3320,
+        "wires": []
+    },
+    {
+        "id": "b89302b2febb2fe4",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "30",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "str",
+        "x": 150,
+        "y": 860,
+        "wires": [
+            [
+                "88997da6e00b28f8"
+            ]
+        ]
+    },
+    {
+        "id": "88997da6e00b28f8",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "function 9",
+        "func": "const thirtySecondsAgo = new Date(Date.now() - 30000).toISOString();\nlet measurement = flow.get('batteryMeasurement');\nmsg.query = 'DELETE FROM ' + measurement + ' WHERE time < ' + \"'\" + thirtySecondsAgo + \"'\";\nmsg.payload = null;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 300,
+        "y": 860,
+        "wires": [
+            [
+                "7dddc764c28935a9",
+                "16296b1b837ee6f4"
+            ]
+        ]
+    },
+    {
+        "id": "7dddc764c28935a9",
+        "type": "debug",
+        "z": "3f5e27f1057c3b43",
+        "name": "debug 47",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 480,
+        "y": 820,
+        "wires": []
+    },
+    {
+        "id": "16296b1b837ee6f4",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 520,
+        "y": 860,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "e4923d2d9c32c5a3",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "TTL de 30 segundos",
+        "info": "",
+        "x": 170,
+        "y": 820,
+        "wires": []
+    },
+    {
+        "id": "b3323fac095e7dab",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "30",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "str",
+        "x": 150,
+        "y": 1640,
+        "wires": [
+            [
+                "33c6adb8a8df783d"
+            ]
+        ]
+    },
+    {
+        "id": "33c6adb8a8df783d",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "function 10",
+        "func": "const thirtySecondsAgo = new Date(Date.now() - 30000).toISOString();\nlet measurement = flow.get('instructionMeasurement');\nmsg.query = 'DELETE FROM ' + measurement + ' WHERE time < ' + \"'\" + thirtySecondsAgo + \"'\";\nmsg.payload = null;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 310,
+        "y": 1640,
+        "wires": [
+            [
+                "655481aae251737c",
+                "40960cca3c5f070f"
+            ]
+        ]
+    },
+    {
+        "id": "655481aae251737c",
+        "type": "debug",
+        "z": "3f5e27f1057c3b43",
+        "name": "debug 48",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 480,
+        "y": 1600,
+        "wires": []
+    },
+    {
+        "id": "40960cca3c5f070f",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 520,
+        "y": 1640,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "795b5a3a4c1359cd",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "TTL de 30 segundos",
+        "info": "",
+        "x": 170,
+        "y": 1600,
+        "wires": []
+    },
+    {
+        "id": "b2208a89ab2283a1",
+        "type": "inject",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "30",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "str",
+        "x": 150,
+        "y": 2500,
+        "wires": [
+            [
+                "5cdb5239cb64b4ad"
+            ]
+        ]
+    },
+    {
+        "id": "5cdb5239cb64b4ad",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "function 11",
+        "func": "const thirtySecondsAgo = new Date(Date.now() - 30000).toISOString();\nlet measurement = flow.get('messageMeasurement');\nmsg.query = 'DELETE FROM ' + measurement + ' WHERE time < ' + \"'\" + thirtySecondsAgo + \"'\";\nmsg.payload = null;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 300,
+        "y": 2500,
+        "wires": [
+            [
+                "301401632a2dd4ff",
+                "c4c7936df221c017"
+            ]
+        ]
+    },
+    {
+        "id": "301401632a2dd4ff",
+        "type": "debug",
+        "z": "3f5e27f1057c3b43",
+        "name": "debug 49",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 480,
+        "y": 2460,
+        "wires": []
+    },
+    {
+        "id": "c4c7936df221c017",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 520,
+        "y": 2500,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "de4e271037156332",
+        "type": "comment",
+        "z": "3f5e27f1057c3b43",
+        "name": "TTL de 30 segundos",
+        "info": "",
+        "x": 170,
+        "y": 2460,
         "wires": []
     },
     {
