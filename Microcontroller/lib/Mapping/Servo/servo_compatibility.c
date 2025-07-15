@@ -494,10 +494,10 @@ esp_err_t servo_simple_continuous_sweep(void)
     // Determine target position
     if (current_pos < SERVO_POSITION_MAX) {
         target_pos = SERVO_POSITION_MAX;
-        LOG_MESSAGE_I(TAG, "Sweeping to 180°");
+        //LOG_MESSAGE_I(TAG, "Sweeping to 180°");
     } else {
         target_pos = SERVO_POSITION_MIN;
-        LOG_MESSAGE_I(TAG, "Sweeping to 0°");
+        //LOG_MESSAGE_I(TAG, "Sweeping to 0°");
     }
 
     xSemaphoreGive(g_servo_semaphore);
@@ -506,7 +506,7 @@ esp_err_t servo_simple_continuous_sweep(void)
     ret = servo_smooth_move_with_semaphore_release(target_pos, g_sweep_duration_ms);
     
     if (ret == ESP_OK) {
-        LOG_MESSAGE_I(TAG, "Reached target position");
+        //LOG_MESSAGE_I(TAG, "Reached target position");
         DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Reached target position (%d°)", target_pos));
     }
 

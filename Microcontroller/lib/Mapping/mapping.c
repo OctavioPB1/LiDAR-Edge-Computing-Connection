@@ -4,7 +4,7 @@
 #include "esp_log.h"
 #include "debug_helper.h"
 
-#define MIN_DISTANCE 100
+#define MIN_DISTANCE 50
 
 static const char *TAG = "MAPPING";
 static esp_err_t getValue(uint16_t *);
