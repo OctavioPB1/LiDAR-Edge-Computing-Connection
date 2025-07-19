@@ -170,7 +170,7 @@ static esp_err_t getValue(uint16_t *distance)
     }
     else
     {
-        val -= 38; // Calibración del valor obtenido
+        //val -= 38; // Calibración del valor obtenido
         if (val < VL53L0X_OUT_OF_RANGE && val >= MIN_DISTANCE)
         {
             *distance = val;

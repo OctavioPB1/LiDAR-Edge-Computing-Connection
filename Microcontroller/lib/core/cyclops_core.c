@@ -592,7 +592,7 @@ static void mappingTask(void *parameter)
 
         angle = 0;
         distance = 0;
-        vTaskDelay(50 / portTICK_PERIOD_MS);
+        vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
 
@@ -620,7 +620,7 @@ static void checkRAM(void *parameter)
             flag = !flag;
         }
 
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
 }
 

@@ -1,4 +1,4 @@
-import { Component, OnInit, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ElementRef } from '@angular/core';
 import { MappingValueService } from '../../../core/services/mapping-value.service';
 import * as d3 from 'd3';
 import { polarToCartesianScaled, CartesianCoordinate } from '../../utils/coordinate-transform.util';
@@ -24,18 +24,22 @@ export interface Point {
   styleUrl: './map.component.scss',
 })
 
-export class MapComponent implements OnInit {
+export class MapComponent implements OnInit, OnDestroy {
   private mapping: boolean = true;
   private width = 850;
   private height = 850;
   private svg: any;
-  private maxDistance = 2; // Distancia máxima en metros (aumentada para LiDAR)
-  private scaleFactor = this.width / (this.maxDistance * 2); // Escala para convertir metros a pixeles
+  private maxDistance = 4; // Distancia máxima en metros (aumentada para LiDAR)
+  private scaleFactor = this.width / (this.maxDistance * 1); // Escala para convertir metros a pixeles
   private pointsMap: Map<number, any> = new Map();
-  private pointLifetime = 2000; // Tiempo en milisegundos antes de borrar un punto
+  private pointLifetime = 4000; // Tiempo en milisegundos antes de borrar un punto
 
   private pointsToPlot: { distance: number; angle: number }[] = []; // Lista de puntos pendientes
-  //private pointsMap = new Map<string, any>(); // Mapa para graficar puntos únicos
+  private readonly maxPointsPerFrame = 200; // Máximo puntos a renderizar por frame
+  private lastPlottedPoint: { x: number; y: number } | null = null; // Último punto dibujado para conectar
+  private backendPollingInterval?: number;
+  private animationFrameId?: number;
+
   constructor(private mappingValueService: MappingValueService) {}
 
   /**
@@ -43,25 +47,74 @@ export class MapComponent implements OnInit {
    * and periodically updating the visualization. Points are retrieved and stored before
    * being plotted at regular intervals.
    */
-    ngOnInit() {
+        ngOnInit() {
       this.createChart();
-     setInterval(() => this.receivePointsFromBackend(), 1000); // Llama cada 1 segundo
-     setInterval(() => this.plotStoredPoints(), 50); // Graficar cada 50ms (más eficiente)
+      this.backendPollingInterval = setInterval(() => this.receivePointsFromBackend(), 300) as any;
+      this.startRenderLoop(); // Usar requestAnimationFrame para rendering
     }
+
+  /**
+   * Cleanup method to prevent memory leaks
+   */
+  ngOnDestroy(): void {
+    this.mapping = false;
+    
+    if (this.backendPollingInterval) {
+      clearInterval(this.backendPollingInterval);
+    }
+    
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+    }
+    
+         // Limpiar todos los puntos del mapa
+     this.pointsMap.forEach((point) => {
+       point.remove();
+     });
+     this.pointsMap.clear();
+     this.lastPlottedPoint = null;
+     this.pointsToPlot = [];
+  }
+
+  /**
+   * Starts the render loop using requestAnimationFrame for smoother performance
+   */
+  private startRenderLoop(): void {
+    const render = () => {
+      if (this.mapping && this.pointsToPlot.length > 0) {
+        this.plotStoredPoints();
+      }
+      if (this.mapping) {
+        this.animationFrameId = requestAnimationFrame(render);
+      }
+    };
+    this.animationFrameId = requestAnimationFrame(render);
+  }
 
   /**
    * Fetches mapping values from the backend and stores them in a list for later visualization.
    * This function is periodically triggered to ensure new points are continuously added.
    */
     receivePointsFromBackend(): void {
-      this.mappingValueService.getMappingValues().subscribe((data) => {
-    
-        if (Array.isArray(data) && data.length > 0) {
-          data.forEach((point) => {
-            this.pointsToPlot.push(point); // Agrega cada punto individualmente
-          });
-        } else if (data && data.length != 0) {
-          console.warn('Datos inesperados recibidos del backend:', data);
+      // Solo hacer request si estamos mapeando y no tenemos demasiados puntos pendientes
+      if (!this.mapping || this.pointsToPlot.length > 300) {
+        return;
+      }
+
+      this.mappingValueService.getMappingValues().subscribe({
+        next: (data) => {
+          if (Array.isArray(data) && data.length > 0) {
+            // Agregar puntos en lote para mejor rendimiento
+            this.pointsToPlot.push(...data);
+            
+            // Limitar el buffer para evitar acumulación excesiva
+            if (this.pointsToPlot.length > 500) {
+              this.pointsToPlot = this.pointsToPlot.slice(-300); // Mantener solo los últimos 300
+            }
+          }
+        },
+        error: (error) => {
+          console.warn('Error fetching mapping data:', error);
         }
       });
     }
@@ -73,47 +126,66 @@ export class MapComponent implements OnInit {
    * Each point remains visible for a defined lifetime before being removed.
    */ 
   plotStoredPoints(): void {
-    
     if (!this.pointsToPlot.length || !this.mapping) {
       return; // Nada que graficar
     }
 
-    this.pointsToPlot.forEach((point) => {
-      // Convertir de polar (ángulo, distancia) a coordenadas cartesianas (x, y)
-      // console.log("d,a: ",point.distance, point.angle)
-      const meters = point.distance/250; // Convertir mm a metros correctamente
+    // Procesar un batch de puntos por frame
+    const numPointsToProcess = Math.min(this.maxPointsPerFrame, this.pointsToPlot.length);
+    const pointsToProcess = this.pointsToPlot.splice(0, numPointsToProcess);
+
+    // Convertir puntos a coordenadas cartesianas
+    pointsToProcess.forEach((point) => {
+      let meters = point.distance / 500; // Convertir mm a metros
       
       // Filtrar puntos fuera del rango máximo
       if (meters > this.maxDistance) {
-        // console.log(`Punto descartado: ${meters}m excede maxDistance de ${this.maxDistance}m`);
+        meters = this.maxDistance;
         return;
       }
-      
-      // Usar la función utilitaria mejorada
-      const { x, y } = this.robotCoordinatesToChart(meters, point.angle);
-      // console.log("Cartesian: ",x,y);
-     
-        const newPoint = this.svg
-          .append('circle')
-          .attr('cx', x)
-          .attr('cy', y)
-          .attr('r', 3)
-          .attr('fill', 'black');
-          
-        // Generar ID único para el punto
-        const pointId = Date.now() + Math.random();
-        this.pointsMap.set(pointId, newPoint);
-        
-        setTimeout(() => {
-          newPoint.remove();
-          this.pointsMap.delete(pointId);
-        }, this.pointLifetime);
-       
-    });
 
-    // Vaciar la lista de puntos ya procesados
-    this.pointsToPlot = [];
+      const { x, y } = this.robotCoordinatesToChart(meters, point.angle);
+      
+      // Dibujar punto
+      const newPoint = this.svg
+        .append('circle')
+        .attr('cx', x)
+        .attr('cy', y)
+        .attr('r', 2)
+        .attr('fill', 'black');
+
+      // Dibujar línea al punto anterior si existe
+      // if (this.lastPlottedPoint) {
+      //   const line = this.svg
+      //     .append('line')
+      //     .attr('x1', this.lastPlottedPoint.x)
+      //     .attr('y1', this.lastPlottedPoint.y)
+      //     .attr('x2', x)
+      //     .attr('y2', y)
+      //     .attr('stroke', 'black')
+      //     .attr('stroke-width', 1);
+        
+      //   // Programar eliminación de la línea
+      //   setTimeout(() => {
+      //     line.remove();
+      //   }, this.pointLifetime);
+      // }
+
+      // Actualizar último punto
+      this.lastPlottedPoint = { x, y };
+      
+      // Programar eliminación del punto
+      const pointId = Date.now() + Math.random();
+      this.pointsMap.set(pointId, newPoint);
+      
+      setTimeout(() => {
+        newPoint.remove();
+        this.pointsMap.delete(pointId);
+      }, this.pointLifetime);
+    });
   }
+
+
 
   /**
  * Sets the mapping process state.
@@ -191,8 +263,9 @@ export class MapComponent implements OnInit {
       point.remove(); // Eliminar el elemento gráfico del SVG
     });
 
-    // Limpiar el mapa de puntos
+    // Limpiar el mapa de puntos y resetear último punto
     this.pointsMap.clear();
+    this.lastPlottedPoint = null;
   }
   
 
