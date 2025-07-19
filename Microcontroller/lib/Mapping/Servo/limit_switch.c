@@ -12,7 +12,7 @@
 
 #include "limit_switch.h"
 #include "esp_log.h"
-#include "servo.h"
+#include "servo_compatibility.h"
 #include "esp_timer.h"          // For getting the current time in microseconds
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"

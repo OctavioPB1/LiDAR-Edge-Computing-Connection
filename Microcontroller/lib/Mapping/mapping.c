@@ -1,10 +1,10 @@
 #include "mapping.h"
-#include "servo.h"
-#include "vl53l0x.h"
+#include "Servo/servo_compatibility.h"
+#include "LiDAR/vl53l0x.h"
 #include "esp_log.h"
 #include "debug_helper.h"
 
-#define MIN_DISTANCE 100
+#define MIN_DISTANCE 50
 
 static const char *TAG = "MAPPING";
 static esp_err_t getValue(uint16_t *);
@@ -170,7 +170,7 @@ static esp_err_t getValue(uint16_t *distance)
     }
     else
     {
-        val -= 38; // Calibración del valor obtenido
+        //val -= 38; // Calibración del valor obtenido
         if (val < VL53L0X_OUT_OF_RANGE && val >= MIN_DISTANCE)
         {
             *distance = val;

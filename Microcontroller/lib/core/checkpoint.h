@@ -23,8 +23,8 @@
 #include "cyclops_core.h"
 #include "instruction_buffer.h"
 #include "i2c.h"
-#include "limit_switch.h"
-#include "servo.h"
+#include "Servo/limit_switch.h"
+#include "Servo/servo_compatibility.h"
 
 /**
  * @brief Sets a checkpoint for execution rollback.

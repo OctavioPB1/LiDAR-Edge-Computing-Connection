@@ -11,7 +11,8 @@ import { HttpClient } from '@angular/common/http';
 })
 export class BatteryValueService {
   // The API endpoint for fetching the battery level data
-  private apiUri = 'http://localhost:1880/battery-level';
+  //private apiUri = 'http://localhost:1880/battery-level';
+  private apiUri = 'http://192.168.1.104:1880/battery-level';
 
   constructor(private http: HttpClient) { }
 

@@ -22,12 +22,12 @@
 #define VL53L0X_H
 
 #include "i2c_vl53l0x.h"
-#include "gpio.h"
+#include "../gpio/gpio.h"
 #include <stdbool.h>
 #include <stdint.h>
 
 
-#define VL53L0X_OUT_OF_RANGE (500)
+#define VL53L0X_OUT_OF_RANGE (1000)
 
 /* Comment these out if not connected */
 // #define VL53L0X_SECOND

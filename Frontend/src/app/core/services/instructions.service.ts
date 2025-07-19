@@ -6,7 +6,8 @@ import { catchError, Observable, throwError } from 'rxjs';
   providedIn: 'root',
 })
 export class InstructionsService {
-  private apiUri = 'http://localhost:1880/instruction';
+  //private apiUri = 'http://localhost:1880/instruction';
+  private apiUri = 'http://192.168.1.104:1880/instruction';
 
   constructor(private http: HttpClient) {}
 

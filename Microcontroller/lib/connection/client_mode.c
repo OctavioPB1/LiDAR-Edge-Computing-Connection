@@ -11,8 +11,8 @@
 // #define WIFI_SSID "wifilora"
 // #define WIFI_PASS "12345678"
 
-#define WIFI_SSID "DiegoDebo"
-#define WIFI_PASS "deboradiego"
+#define WIFI_SSID "dd-wrt"
+#define WIFI_PASS "edge123456"
 
 static const char *TAG = "client mode";
 
