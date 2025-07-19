@@ -2,7 +2,7 @@
 #include "cyclops_core.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "mapping.h"
+#include "LiDAR_Library/mapping.h"
 #include "battery.h"
 #include "motors.h"
 #include "mqtt_handler.h"
