@@ -64,13 +64,13 @@ const servo_config_t SERVO_CONFIG_POSITION_SG90 = {
 const servo_config_t SERVO_CONFIG_CONTINUOUS_STANDARD = {
     .pin = GPIO_NUM_14,
     .type = SERVO_TYPE_CONTINUOUS,
-    .min_pulse_us = 900,
-    .max_pulse_us = 2100,
-    .center_pulse_us = 1500,
+    .min_pulse_us = 900,     // MS-R-1.3-9 minimum pulse
+    .max_pulse_us = 2100,    // MS-R-1.3-9 maximum pulse
+    .center_pulse_us = 1440, // MS-R-1.3-9 center/stop pulse
     .frequency_hz = 50,
     .min_angle = 0,
     .max_angle = 0,
-    .speed = 50,
+    .speed = 50,             // Default to 50% speed
     .invert_direction = false
 };
 
@@ -211,6 +211,33 @@ esp_err_t servo_generic_init(const servo_config_t *config, servo_handle_t **hand
         return ret;
     }
 
+    // Configure generator actions - CRITICAL: This generates the actual PWM signal
+    ret = mcpwm_generator_set_action_on_timer_event((*handle)->generator,
+                                                    MCPWM_GEN_TIMER_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP, MCPWM_TIMER_EVENT_EMPTY, MCPWM_GEN_ACTION_HIGH));
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to set generator action on timer event: %s", esp_err_to_name(ret));
+        mcpwm_del_generator((*handle)->generator);
+        mcpwm_del_comparator((*handle)->comparator);
+        mcpwm_del_operator((*handle)->operator);
+        mcpwm_del_timer((*handle)->timer);
+        free(*handle);
+        *handle = NULL;
+        return ret;
+    }
+
+    ret = mcpwm_generator_set_action_on_compare_event((*handle)->generator,
+                                                      MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP, (*handle)->comparator, MCPWM_GEN_ACTION_LOW));
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to set generator action on compare event: %s", esp_err_to_name(ret));
+        mcpwm_del_generator((*handle)->generator);
+        mcpwm_del_comparator((*handle)->comparator);
+        mcpwm_del_operator((*handle)->operator);
+        mcpwm_del_timer((*handle)->timer);
+        free(*handle);
+        *handle = NULL;
+        return ret;
+    }
+
     (*handle)->is_initialized = true;
     ESP_LOGI(TAG, "Servo initialized successfully on GPIO %d", config->pin);
     
@@ -308,7 +335,7 @@ esp_err_t servo_generic_set_position(servo_handle_t *handle, uint16_t angle)
     ret = servo_set_pulse_width(handle, pulse);
     if (ret == ESP_OK) {
         handle->current_angle = angle;
-        ESP_LOGI(TAG, "Position set to %d degrees", angle);
+        //ESP_LOGI(TAG, "Position set to %d degrees", angle);
     }
     
     return ret;
@@ -453,7 +480,7 @@ esp_err_t servo_generic_move_smooth(servo_handle_t *handle, uint16_t target_angl
         vTaskDelay(pdMS_TO_TICKS(20));
     }
     
-    ESP_LOGI(TAG, "Smooth movement completed to %d degrees", target_angle);
+    //ESP_LOGI(TAG, "Smooth movement completed to %d degrees", target_angle);
     return ESP_OK;
 }
 
@@ -501,30 +528,84 @@ static esp_err_t servo_set_pulse_width(servo_handle_t *handle, uint32_t pulse_wi
 
 static uint32_t angle_to_pulse(servo_handle_t *handle, uint16_t angle)
 {
-    uint32_t pulse_range = handle->config.max_pulse_us - handle->config.min_pulse_us;
     uint16_t angle_range = handle->config.max_angle - handle->config.min_angle;
     
     if (angle_range == 0) {
         return handle->config.center_pulse_us;
     }
     
-    uint32_t pulse = handle->config.min_pulse_us + 
-                     (uint32_t)((angle - handle->config.min_angle) * pulse_range / angle_range);
+    // Calculate center angle
+    uint16_t center_angle = (handle->config.min_angle + handle->config.max_angle) / 2;
+    
+    uint32_t pulse;
+    if (angle == center_angle) {
+        // Use exact center pulse for center angle
+        pulse = handle->config.center_pulse_us;
+    } else if (angle < center_angle) {
+        // Interpolate from min_pulse to center_pulse for angles below center
+        uint16_t lower_angle_range = center_angle - handle->config.min_angle;
+        uint32_t lower_pulse_range = handle->config.center_pulse_us - handle->config.min_pulse_us;
+        
+        if (lower_angle_range == 0) {
+            pulse = handle->config.min_pulse_us;
+        } else {
+            pulse = handle->config.min_pulse_us + 
+                    (uint32_t)((angle - handle->config.min_angle) * lower_pulse_range / lower_angle_range);
+        }
+    } else {
+        // Interpolate from center_pulse to max_pulse for angles above center
+        uint16_t upper_angle_range = handle->config.max_angle - center_angle;
+        uint32_t upper_pulse_range = handle->config.max_pulse_us - handle->config.center_pulse_us;
+        
+        if (upper_angle_range == 0) {
+            pulse = handle->config.max_pulse_us;
+        } else {
+            pulse = handle->config.center_pulse_us + 
+                    (uint32_t)((angle - center_angle) * upper_pulse_range / upper_angle_range);
+        }
+    }
     
     return pulse;
 }
 
 static uint16_t pulse_to_angle(servo_handle_t *handle, uint32_t pulse)
 {
-    uint32_t pulse_range = handle->config.max_pulse_us - handle->config.min_pulse_us;
     uint16_t angle_range = handle->config.max_angle - handle->config.min_angle;
     
-    if (pulse_range == 0 || angle_range == 0) {
+    if (angle_range == 0) {
         return handle->config.min_angle;
     }
     
-    uint16_t angle = handle->config.min_angle + 
-                     (uint16_t)((pulse - handle->config.min_pulse_us) * angle_range / pulse_range);
+    // Calculate center angle
+    uint16_t center_angle = (handle->config.min_angle + handle->config.max_angle) / 2;
+    
+    uint16_t angle;
+    if (pulse == handle->config.center_pulse_us) {
+        // Exact center pulse maps to center angle
+        angle = center_angle;
+    } else if (pulse < handle->config.center_pulse_us) {
+        // Interpolate from min_angle to center_angle for pulses below center
+        uint32_t lower_pulse_range = handle->config.center_pulse_us - handle->config.min_pulse_us;
+        uint16_t lower_angle_range = center_angle - handle->config.min_angle;
+        
+        if (lower_pulse_range == 0) {
+            angle = handle->config.min_angle;
+        } else {
+            angle = handle->config.min_angle + 
+                    (uint16_t)((pulse - handle->config.min_pulse_us) * lower_angle_range / lower_pulse_range);
+        }
+    } else {
+        // Interpolate from center_angle to max_angle for pulses above center
+        uint32_t upper_pulse_range = handle->config.max_pulse_us - handle->config.center_pulse_us;
+        uint16_t upper_angle_range = handle->config.max_angle - center_angle;
+        
+        if (upper_pulse_range == 0) {
+            angle = handle->config.max_angle;
+        } else {
+            angle = center_angle + 
+                    (uint16_t)((pulse - handle->config.center_pulse_us) * upper_angle_range / upper_pulse_range);
+        }
+    }
     
     return angle;
 }

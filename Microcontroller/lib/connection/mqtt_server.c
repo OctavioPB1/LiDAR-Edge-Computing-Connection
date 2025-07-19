@@ -30,7 +30,7 @@
 
 static const char *TAG = "MQTT_SERVER";                                          ///< Log tag for MQTT Server
 //static const char *URL = "mqtt://192.168.1.105:1883";                              ///< MQTT broker URL
-static const char *URL = "mqtt://192.168.1.100:1883";  ///< IP del Nodo Edge     ///< MQTT broker URL   
+static const char *URL = "mqtt://192.168.1.104:1883";  ///< IP del Nodo Edge     ///< MQTT broker URL   
 static esp_mqtt_client_handle_t mqtt_client = NULL;                              ///< Handle for MQTT client
 static const char *TOPICS[] = {"Instruction", "Messages", "Mapping", "Battery", "Barrier"}; ///< Topics to subscribe to
 static char inst[40] = {0};                                                      ///< Buffer for instructions
@@ -55,15 +55,7 @@ static void instruction_handler(char *, size_t length);
  */
 esp_err_t mqtt_start()
 {
-
-    esp_err_t err = initBuffer();
-    if (err != ESP_OK)
-    {
-        DEBUGING_ESP_LOG(ESP_LOGE(TAG, "Error Initializing Instruction Buffer"));
-        return ESP_FAIL;
-    }
-
-    err = mqtt_connect();
+    esp_err_t err = mqtt_connect();
     uint8_t retry_count = 0;
     const uint8_t max_retries = 5;
     while (err != ESP_OK && retry_count < max_retries)

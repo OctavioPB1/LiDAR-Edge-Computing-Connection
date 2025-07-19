@@ -80,7 +80,29 @@
     <div class="main-content">
       <div id="monitor"> <app-monitor></app-monitor>
       </div>
-      <div id="map"><app-map></app-map>
+      <div id="map">
+        <!-- Vista Original -->
+        <app-map *ngIf="currentMapView === 'original'"></app-map>
+        
+        <!-- Vista Heatmap -->
+        <app-map-heatmap *ngIf="currentMapView === 'heatmap'"></app-map-heatmap>
+        
+        <!-- Vista Radar -->
+        <app-map-radar *ngIf="currentMapView === 'radar'"></app-map-radar>
+        
+        <!-- Vista Obstáculos -->
+        <app-map-obstacles *ngIf="currentMapView === 'obstacles'"></app-map-obstacles>
+        
+        <!-- Indicador de vista actual -->
+        <div class="map-view-indicator">
+          <span class="view-label">Vista: 
+            <strong>
+              {{ currentMapView === 'original' ? 'Original' : 
+                 currentMapView === 'heatmap' ? 'Mapa de Calor' :
+                 currentMapView === 'radar' ? 'Radar' : 'Obstáculos' }}
+            </strong>
+          </span>
+        </div>
       </div>
     </div>
   </as-split-area>

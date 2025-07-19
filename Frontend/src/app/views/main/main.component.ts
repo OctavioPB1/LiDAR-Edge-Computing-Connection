@@ -51,6 +51,9 @@ import { MatDialog } from '@angular/material/dialog';
 import { InstructionsService } from '../../core/services/instructions.service';
 import { MonitorComponent } from '../../shared/components/monitor/monitor.component';
 import { MapComponent } from '../../shared/components/map/map.component';
+import { MapHeatmapComponent } from '../../shared/components/map/map-heatmap.component';
+import { MapRadarComponent } from '../../shared/components/map/map-radar.component';
+import { MapObstaclesComponent } from '../../shared/components/map/map-obstacles.component';
 import { BatteryValueService } from '../../core/services/battery-value.service';
 import { inject } from '@angular/core';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
@@ -74,6 +77,9 @@ import { ModalComponent } from '../../shared/components/modal/modal.component';
     MatMenuModule,
     MonitorComponent,
     MapComponent,
+    MapHeatmapComponent,
+    MapRadarComponent,
+    MapObstaclesComponent,
   ],
   templateUrl: './main.component.html',
   styleUrl: './main.component.scss',
@@ -101,20 +107,34 @@ export class MainComponent implements OnInit {
   // Velocidad actual
   speed: string = 'Normal';
 
+  // Control de visualización del mapa
+  currentMapView: 'original' | 'heatmap' | 'radar' | 'obstacles' = 'original';
+
   buttons = [
     { icon: 'speed', label: 'Normal' },
     { icon: 'download', label: 'Guardar Mapeo' },
     { icon: 'pause', label: 'PAUSAR' },
     { icon: 'restart_alt', label: 'REINICIAR' },
     { icon: 'cancel', label: 'RESTABLECER' },
+    { icon: 'map', label: 'Cambiar Vista' },
   ];
+
+  // Método para cambiar la visualización del mapa
+  switchMapView() {
+    const views: Array<'original' | 'heatmap' | 'radar' | 'obstacles'> = ['original', 'heatmap', 'radar', 'obstacles'];
+    const currentIndex = views.indexOf(this.currentMapView);
+    const nextIndex = (currentIndex + 1) % views.length;
+    this.currentMapView = views[nextIndex];
+    
+    console.log(`Vista cambiada a: ${this.currentMapView}`);
+  }
 
   /**
    * Initializes the component by setting up periodic battery value retrieval
    * and displaying a welcome modal when the component is first loaded.
    */
   ngOnInit() {
-    setInterval(() => this.getBatteryValue(), 1000);
+    setInterval(() => this.getBatteryValue(), 5000);
     this.openWelcomeModal();
   }
   
@@ -197,6 +217,9 @@ export class MainComponent implements OnInit {
       case 'Guardar Mapeo':
         // Funcion para sacar captura al mapa
         this.mapComponent.captureMap();
+        break;
+      case 'Cambiar Vista':
+        this.switchMapView();
         break;
       case 'REINICIAR':
         // Funcion para reinicar

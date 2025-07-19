@@ -1,6 +1,7 @@
-import { Component, OnInit, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ElementRef } from '@angular/core';
 import { MappingValueService } from '../../../core/services/mapping-value.service';
 import * as d3 from 'd3';
+import { polarToCartesianScaled, CartesianCoordinate } from '../../utils/coordinate-transform.util';
 
 
 export interface Point {
@@ -23,18 +24,22 @@ export interface Point {
   styleUrl: './map.component.scss',
 })
 
-export class MapComponent implements OnInit {
+export class MapComponent implements OnInit, OnDestroy {
   private mapping: boolean = true;
   private width = 850;
   private height = 850;
   private svg: any;
-  private maxDistance = 1; // Distancia máxima en metros
-  private scaleFactor = this.width / (this.maxDistance * 2); // Escala para convertir metros a pixeles
+  private maxDistance = 4; // Distancia máxima en metros (aumentada para LiDAR)
+  private scaleFactor = this.width / (this.maxDistance * 1); // Escala para convertir metros a pixeles
   private pointsMap: Map<number, any> = new Map();
-  private pointLifetime = 5000; // Tiempo en milisegundos antes de borrar un punto
+  private pointLifetime = 4000; // Tiempo en milisegundos antes de borrar un punto
 
   private pointsToPlot: { distance: number; angle: number }[] = []; // Lista de puntos pendientes
-  //private pointsMap = new Map<string, any>(); // Mapa para graficar puntos únicos
+  private readonly maxPointsPerFrame = 200; // Máximo puntos a renderizar por frame
+  private lastPlottedPoint: { x: number; y: number } | null = null; // Último punto dibujado para conectar
+  private backendPollingInterval?: number;
+  private animationFrameId?: number;
+
   constructor(private mappingValueService: MappingValueService) {}
 
   /**
@@ -42,25 +47,74 @@ export class MapComponent implements OnInit {
    * and periodically updating the visualization. Points are retrieved and stored before
    * being plotted at regular intervals.
    */
-    ngOnInit() {
+        ngOnInit() {
       this.createChart();
-     setInterval(() => this.receivePointsFromBackend(), 10); // Llama cada 500ms
-     setInterval(() => this.plotStoredPoints(), 10); // Graficar cada 100ms
+      this.backendPollingInterval = setInterval(() => this.receivePointsFromBackend(), 300) as any;
+      this.startRenderLoop(); // Usar requestAnimationFrame para rendering
     }
+
+  /**
+   * Cleanup method to prevent memory leaks
+   */
+  ngOnDestroy(): void {
+    this.mapping = false;
+    
+    if (this.backendPollingInterval) {
+      clearInterval(this.backendPollingInterval);
+    }
+    
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+    }
+    
+         // Limpiar todos los puntos del mapa
+     this.pointsMap.forEach((point) => {
+       point.remove();
+     });
+     this.pointsMap.clear();
+     this.lastPlottedPoint = null;
+     this.pointsToPlot = [];
+  }
+
+  /**
+   * Starts the render loop using requestAnimationFrame for smoother performance
+   */
+  private startRenderLoop(): void {
+    const render = () => {
+      if (this.mapping && this.pointsToPlot.length > 0) {
+        this.plotStoredPoints();
+      }
+      if (this.mapping) {
+        this.animationFrameId = requestAnimationFrame(render);
+      }
+    };
+    this.animationFrameId = requestAnimationFrame(render);
+  }
 
   /**
    * Fetches mapping values from the backend and stores them in a list for later visualization.
    * This function is periodically triggered to ensure new points are continuously added.
    */
     receivePointsFromBackend(): void {
-      this.mappingValueService.getMappingValues().subscribe((data) => {
-    
-        if (Array.isArray(data) && data.length > 0) {
-          data.forEach((point) => {
-            this.pointsToPlot.push(point); // Agrega cada punto individualmente
-          });
-        } else if (data && data.length != 0) {
-          console.warn('Datos inesperados recibidos del backend:', data);
+      // Solo hacer request si estamos mapeando y no tenemos demasiados puntos pendientes
+      if (!this.mapping || this.pointsToPlot.length > 300) {
+        return;
+      }
+
+      this.mappingValueService.getMappingValues().subscribe({
+        next: (data) => {
+          if (Array.isArray(data) && data.length > 0) {
+            // Agregar puntos en lote para mejor rendimiento
+            this.pointsToPlot.push(...data);
+            
+            // Limitar el buffer para evitar acumulación excesiva
+            if (this.pointsToPlot.length > 500) {
+              this.pointsToPlot = this.pointsToPlot.slice(-300); // Mantener solo los últimos 300
+            }
+          }
+        },
+        error: (error) => {
+          console.warn('Error fetching mapping data:', error);
         }
       });
     }
@@ -72,34 +126,66 @@ export class MapComponent implements OnInit {
    * Each point remains visible for a defined lifetime before being removed.
    */ 
   plotStoredPoints(): void {
-    
     if (!this.pointsToPlot.length || !this.mapping) {
       return; // Nada que graficar
     }
 
-    this.pointsToPlot.forEach((point) => {
-      // Convertir de polar (ángulo, distancia) a coordenadas cartesianas (x, y)
-      console.log("d,a: ",point.distance, point.angle)
-      const meters = point.distance/1000;
-      const { x, y } = this.polarToCartesian(meters, point.angle - 90);
-      console.log("Cartesian: ",x,y);
-     
-        const newPoint = this.svg
-          .append('circle')
-          .attr('cx', x)
-          .attr('cy', y)
-          .attr('r', 3)
-          .attr('fill', 'black');
-          this.pointsMap.set(point.angle, newPoint);
-          setTimeout(() => {
-            newPoint.remove();
-          }, this.pointLifetime);
-       
-    });
+    // Procesar un batch de puntos por frame
+    const numPointsToProcess = Math.min(this.maxPointsPerFrame, this.pointsToPlot.length);
+    const pointsToProcess = this.pointsToPlot.splice(0, numPointsToProcess);
 
-    // Vaciar la lista de puntos ya procesados
-    this.pointsToPlot = [];
+    // Convertir puntos a coordenadas cartesianas
+    pointsToProcess.forEach((point) => {
+      let meters = point.distance / 500; // Convertir mm a metros
+      
+      // Filtrar puntos fuera del rango máximo
+      if (meters > this.maxDistance) {
+        meters = this.maxDistance;
+        return;
+      }
+
+      const { x, y } = this.robotCoordinatesToChart(meters, point.angle);
+      
+      // Dibujar punto
+      const newPoint = this.svg
+        .append('circle')
+        .attr('cx', x)
+        .attr('cy', y)
+        .attr('r', 2)
+        .attr('fill', 'black');
+
+      // Dibujar línea al punto anterior si existe
+      // if (this.lastPlottedPoint) {
+      //   const line = this.svg
+      //     .append('line')
+      //     .attr('x1', this.lastPlottedPoint.x)
+      //     .attr('y1', this.lastPlottedPoint.y)
+      //     .attr('x2', x)
+      //     .attr('y2', y)
+      //     .attr('stroke', 'black')
+      //     .attr('stroke-width', 1);
+        
+      //   // Programar eliminación de la línea
+      //   setTimeout(() => {
+      //     line.remove();
+      //   }, this.pointLifetime);
+      // }
+
+      // Actualizar último punto
+      this.lastPlottedPoint = { x, y };
+      
+      // Programar eliminación del punto
+      const pointId = Date.now() + Math.random();
+      this.pointsMap.set(pointId, newPoint);
+      
+      setTimeout(() => {
+        newPoint.remove();
+        this.pointsMap.delete(pointId);
+      }, this.pointLifetime);
+    });
   }
+
+
 
   /**
  * Sets the mapping process state.
@@ -153,7 +239,7 @@ export class MapComponent implements OnInit {
       .attr('fill', '#213A7D');
 
         // Dibujar las circunferencias con los radios dados
-        const radii = [0.25, 0.50, 0.75, 1]; // Radios en metros
+        const radii = [0.5, 1.0, 1.5, 2.0]; // Radios en metros (ajustados para maxDistance = 2m)
         radii.forEach(radius => {
             this.svg
               .append('circle')
@@ -177,27 +263,29 @@ export class MapComponent implements OnInit {
       point.remove(); // Eliminar el elemento gráfico del SVG
     });
 
-    // Limpiar el mapa de puntos
+    // Limpiar el mapa de puntos y resetear último punto
     this.pointsMap.clear();
+    this.lastPlottedPoint = null;
   }
   
 
   /**
-   * Converts polar coordinates (distance and angle) to Cartesian coordinates (x, y).
-   * The angle is first converted to radians and used to calculate the x and y values based 
-   * on the distance and scale factor. The y-axis is inverted to fit the D3 coordinate system.
+   * Convierte coordenadas polares del robot a coordenadas para el gráfico
+   * Usa la función utilitaria polarToCartesianScaled para mayor reutilización
    * 
-   * @param distance The distance from the origin (in some unit).
-   * @param angle The angle in degrees.
-   * @returns The Cartesian coordinates (x, y).
+   * @param distance La distancia desde el origen (en metros)
+   * @param angle El ángulo en grados
+   * @returns Las coordenadas cartesianas (x, y) para el SVG
    */
-  polarToCartesian(distance: number, angle: number) {
-    const angle_pos = (angle+360) % 360;
-    console.log("Angle positivo: ", angle_pos);
-    const radians = (angle * Math.PI) / 180; // Convertir grados a radianes
-    const x = ( this.width / 2 ) + distance * this.scaleFactor * Math.cos(radians);
-    const y = ( this.height / 2 ) - distance * this.scaleFactor * Math.sin(radians); // Invertir eje Y para D3
-    return { x, y };
+  robotCoordinatesToChart(distance: number, angle: number): CartesianCoordinate {
+    return polarToCartesianScaled(
+      distance, 
+      angle, // Ajuste para que 0° sea hacia adelante del robot
+      this.scaleFactor, 
+      this.width / 2, 
+      this.height / 2, 
+      true // Invertir Y para SVG
+    );
   }
 
 
