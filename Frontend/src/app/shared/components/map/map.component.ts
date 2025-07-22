@@ -32,10 +32,10 @@ export class MapComponent implements OnInit, OnDestroy {
   private maxDistance = 4; // Distancia máxima en metros (aumentada para LiDAR)
   private scaleFactor = this.width / (this.maxDistance * 1); // Escala para convertir metros a pixeles
   private pointsMap: Map<number, any> = new Map();
-  private pointLifetime = 4000; // Tiempo en milisegundos antes de borrar un punto
+  private pointLifetime = 400; // Tiempo en milisegundos antes de borrar un punto
 
   private pointsToPlot: { distance: number; angle: number }[] = []; // Lista de puntos pendientes
-  private readonly maxPointsPerFrame = 200; // Máximo puntos a renderizar por frame
+  private readonly maxPointsPerFrame = 400; // Máximo puntos a renderizar por frame
   private lastPlottedPoint: { x: number; y: number } | null = null; // Último punto dibujado para conectar
   private backendPollingInterval?: number;
   private animationFrameId?: number;
@@ -109,7 +109,7 @@ export class MapComponent implements OnInit, OnDestroy {
             
             // Limitar el buffer para evitar acumulación excesiva
             if (this.pointsToPlot.length > 500) {
-              this.pointsToPlot = this.pointsToPlot.slice(-300); // Mantener solo los últimos 300
+              this.pointsToPlot = this.pointsToPlot.slice(-400); // Mantener solo los últimos 300
             }
           }
         },

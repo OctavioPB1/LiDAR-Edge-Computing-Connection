@@ -278,6 +278,13 @@ esp_err_t mqtt_disconnect()
         DEBUGING_ESP_LOG(ESP_LOGE(TAG, "Failed to stop MQTT client: %s", esp_err_to_name(err)));
         return err;
     }
+    
+    err = esp_mqtt_client_destroy(mqtt_client);
+    if (err != ESP_OK)
+    {
+        DEBUGING_ESP_LOG(ESP_LOGE(TAG, "Failed to destroy MQTT client: %s", esp_err_to_name(err)));
+        return err;
+    }  
 
     mqtt_client = NULL; // Limpiar el puntero del cliente
     DEBUGING_ESP_LOG(ESP_LOGI(TAG, "MQTT client disconnected"));
