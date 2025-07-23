@@ -707,7 +707,7 @@
         "y": 1080,
         "wires": [
             [
-                "bf6b3c54fd547ca8"
+                "4d2c877fab367b99"
             ]
         ]
     },
@@ -734,7 +734,7 @@
         "retentionPolicyV18Flux": "",
         "org": "organisation",
         "bucket": "bucket",
-        "x": 1780,
+        "x": 1960,
         "y": 1080,
         "wires": []
     },
@@ -1724,8 +1724,8 @@
                 "1569fc796df1cbcd"
             ],
             [
-                "81a54c83701765e0",
-                "1569fc796df1cbcd"
+                "1569fc796df1cbcd",
+                "81a54c83701765e0"
             ]
         ]
     },
@@ -1859,7 +1859,7 @@
         "type": "function",
         "z": "3f5e27f1057c3b43",
         "name": "Check Result [Empty, Msg]",
-        "func": "if (!msg.payload || msg.payload.length === 0) {\n    msg.statusCode = 204;\n    msg.payload = \"NO NEW MAPPINGVALUE\";\n    return [msg, null];  // Ruta 204\n}\n\nlet record = [];\nmsg.payload.forEach( function(data) {\n    record.push({\n        \"id\": data.id,\n        \"distance\": data.distance,\n        \"angle\": data.angle,\n        \"time\": data.time,\n        \"read\": data.read    \n    })\n});\n\nmsg.payload = record;\nmsg.statusCode = 200;\nreturn [null, msg];\n",
+        "func": "if (!msg.payload || msg.payload.length === 0) {\n    msg.statusCode = 204;\n    msg.payload = \"NO NEW MAPPINGVALUE\";\n    return [msg, null];  // Ruta 204\n}\n\nlet record = [];\nmsg.payload.forEach( function(data) {\n    record.push({\n        \"id\": data.id,\n        \"distance\": data.distance,\n        \"angle\": data.angle,\n        \"time\": Number(data.time),\n        \"read\": data.read    \n    })\n});\n\nmsg.payload = record;\nmsg.statusCode = 200;\nreturn [null, msg];\n",
         "outputs": 2,
         "timeout": 0,
         "noerr": 0,
@@ -1873,8 +1873,8 @@
                 "960a1e386d68e929"
             ],
             [
-                "0b767bcbc751a180",
-                "960a1e386d68e929"
+                "960a1e386d68e929",
+                "62a3bf34ba68e53f"
             ]
         ]
     },
@@ -1901,11 +1901,11 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 1580,
-        "y": 2720,
+        "x": 2180,
+        "y": 2640,
         "wires": [
             [
-                "b01c548e3a91e7ab"
+                "0d239d8a2bf11c18"
             ]
         ]
     },
@@ -1932,7 +1932,7 @@
         "retentionPolicyV18Flux": "",
         "org": "organisation",
         "bucket": "bucket",
-        "x": 1860,
+        "x": 2140,
         "y": 2720,
         "wires": []
     },
@@ -2166,8 +2166,8 @@
         "y": 3200,
         "wires": [
             [
-                "1ab4c2115ec38134",
-                "69fb330250d412e5"
+                "69fb330250d412e5",
+                "52c36c40fb3b67d7"
             ]
         ]
     },
@@ -2176,14 +2176,14 @@
         "type": "function",
         "z": "3f5e27f1057c3b43",
         "name": "Query to insert new MappingValue",
-        "func": "const distance = msg.payload.distance;\nconst angle = msg.payload.angle;\nconst id = flow.get('id_mappingValue') || 0;\nlet measurement = flow.get('mappingValueMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"distance\": parseInt(distance),\n        \"angle\": parseFloat(angle),\n        \"read\": false\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': new Date().valueOf()\n}];\n\nflow.set('id_mappingValue', id + 1);\n\nreturn msg;",
+        "func": "const distance = msg.payload.distance;\nconst angle = msg.payload.angle;\nconst id = flow.get('id_mappingValue') || 0;\nlet measurement = flow.get('mappingValueMeasurement');\n\nmsg.payload = [{\n    measurement: measurement,\n    fields: {\n        \"distance\": parseInt(distance),\n        \"angle\": parseFloat(angle),\n        \"read\": false\n    },\n    tags: {\n        \"id\": id\n    },\n    'timestamp': Number(new Date().valueOf())\n}];\n\nflow.set('id_mappingValue', id + 1);\n\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 400,
+        "x": 560,
         "y": 3200,
         "wires": [
             [
@@ -2204,7 +2204,7 @@
         "retentionPolicyV18Flux": "",
         "org": "organisation",
         "bucket": "bucket",
-        "x": 680,
+        "x": 840,
         "y": 3200,
         "wires": []
     },
@@ -2937,7 +2937,7 @@
         "type": "debug",
         "z": "3f5e27f1057c3b43",
         "name": "debug 1",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -2954,7 +2954,7 @@
         "type": "debug",
         "z": "3f5e27f1057c3b43",
         "name": "debug 2",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -2971,7 +2971,7 @@
         "type": "debug",
         "z": "3f5e27f1057c3b43",
         "name": "debug 3",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -2988,7 +2988,7 @@
         "type": "debug",
         "z": "3f5e27f1057c3b43",
         "name": "debug 4",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -3005,7 +3005,7 @@
         "type": "debug",
         "z": "3f5e27f1057c3b43",
         "name": "debug 5",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -3022,7 +3022,7 @@
         "type": "debug",
         "z": "3f5e27f1057c3b43",
         "name": "debug 6",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -3039,7 +3039,7 @@
         "type": "debug",
         "z": "3f5e27f1057c3b43",
         "name": "debug 7",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -3056,7 +3056,7 @@
         "type": "debug",
         "z": "3f5e27f1057c3b43",
         "name": "debug 8",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -3090,7 +3090,7 @@
         "type": "debug",
         "z": "3f5e27f1057c3b43",
         "name": "debug 10",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -3107,7 +3107,7 @@
         "type": "debug",
         "z": "3f5e27f1057c3b43",
         "name": "debug 11",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -3149,7 +3149,7 @@
         "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
-        "x": 330,
+        "x": 300,
         "y": 3240,
         "wires": []
     },
@@ -3331,7 +3331,7 @@
         "type": "debug",
         "z": "3f5e27f1057c3b43",
         "name": "debug 45",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -3726,6 +3726,118 @@
         "x": 170,
         "y": 2460,
         "wires": []
+    },
+    {
+        "id": "4d2c877fab367b99",
+        "type": "delay",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "5",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 1750,
+        "y": 1080,
+        "wires": [
+            [
+                "bf6b3c54fd547ca8"
+            ]
+        ]
+    },
+    {
+        "id": "0d239d8a2bf11c18",
+        "type": "delay",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "15",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 2110,
+        "y": 2680,
+        "wires": [
+            [
+                "b01c548e3a91e7ab"
+            ]
+        ]
+    },
+    {
+        "id": "52c36c40fb3b67d7",
+        "type": "delay",
+        "z": "3f5e27f1057c3b43",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "15",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 310,
+        "y": 3200,
+        "wires": [
+            [
+                "1ab4c2115ec38134"
+            ]
+        ]
+    },
+    {
+        "id": "62a3bf34ba68e53f",
+        "type": "function",
+        "z": "3f5e27f1057c3b43",
+        "name": "Query to delete ID mappingValue",
+        "func": "// let id = Number(msg.req.params.id);\n// let measurement = flow.get('mappingValueMeasurement');\n// let query = 'WHERE \"id\" = ' + \"'\" + id + \"'\";\n\n// msg.query = 'DELETE FROM ' \n//             + measurement \n//             + ' ' \n//             + query;\n// msg.payload = null;\n\n// return msg;\n\nlet measurement = flow.get('mappingValueMeasurement');\nlet query;\n\nmsg.payload.forEach(function(data) {\n        query = 'WHERE \"id\" = ' + \"'\" + data.id + \"'\";\n        msg.query = 'DELETE FROM ' \n                    + measurement \n                    + ' ' \n                    + query;\n        msg.payload = null;\n        node.send(msg);\n    }\n);\n\nreturn null;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1580,
+        "y": 2720,
+        "wires": [
+            [
+                "376a9812aa52daee"
+            ]
+        ]
+    },
+    {
+        "id": "376a9812aa52daee",
+        "type": "influxdb in",
+        "z": "3f5e27f1057c3b43",
+        "influxdb": "f8f64e7f160f84a8",
+        "name": "",
+        "query": "",
+        "rawOutput": false,
+        "precision": "ms",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 1860,
+        "y": 2720,
+        "wires": [
+            []
+        ]
     },
     {
         "id": "78b50610a06c74af",
