@@ -29,16 +29,28 @@ export class MapComponent implements OnInit, OnDestroy {
   private width = 850;
   private height = 850;
   private svg: any;
-  private maxDistance = 4; // Distancia máxima en metros (aumentada para LiDAR)
-  private scaleFactor = this.width / (this.maxDistance * 1); // Escala para convertir metros a pixeles
+  private canvas: HTMLCanvasElement | null = null;
+  private ctx: CanvasRenderingContext2D | null = null;
+  private maxDistance = 2.5; // Distancia máxima en metros (aumentada para LiDAR)
+  private scaleFactor = this.width / (this.maxDistance * 0.9); // Escala para convertir metros a pixeles
   private pointsMap: Map<number, any> = new Map();
-  private pointLifetime = 400; // Tiempo en milisegundos antes de borrar un punto
+  private pointLifetime = 20 * 1000; // Tiempo en milisegundos antes de borrar un punto
+  
+  // Centro desplazado hacia abajo para simular sonar de barco
+  private centerX = this.width / 2;
+  private centerY = this.height * 0.7; // Desplazamiento hacia abajo
 
   private pointsToPlot: { distance: number; angle: number }[] = []; // Lista de puntos pendientes
-  private readonly maxPointsPerFrame = 400; // Máximo puntos a renderizar por frame
+  private readonly maxPointsPerFrame = 800; // Aumentado para Canvas
+  private canvasPoints: Array<{x: number, y: number, timestamp: number}> = []; // Points for canvas
   private lastPlottedPoint: { x: number; y: number } | null = null; // Último punto dibujado para conectar
   private backendPollingInterval?: number;
   private animationFrameId?: number;
+  
+  // Optimizaciones de filtrado
+  private readonly minPointDistance = 3; // Distancia mínima en píxeles entre puntos
+  private lastFilteredPoint: { x: number; y: number } | null = null;
+  private needsRender = false; // Flag para indicar si necesita renderizar
 
   constructor(private mappingValueService: MappingValueService) {}
 
@@ -47,11 +59,11 @@ export class MapComponent implements OnInit, OnDestroy {
    * and periodically updating the visualization. Points are retrieved and stored before
    * being plotted at regular intervals.
    */
-        ngOnInit() {
-      this.createChart();
-      this.backendPollingInterval = setInterval(() => this.receivePointsFromBackend(), 300) as any;
-      this.startRenderLoop(); // Usar requestAnimationFrame para rendering
-    }
+  ngOnInit() {
+    this.createChart();
+    this.backendPollingInterval = setInterval(() => this.receivePointsFromBackend(), 150) as any; // Más frecuente para Canvas
+    this.startRenderLoop(); // Usar requestAnimationFrame para rendering
+  }
 
   /**
    * Cleanup method to prevent memory leaks
@@ -67,24 +79,41 @@ export class MapComponent implements OnInit, OnDestroy {
       cancelAnimationFrame(this.animationFrameId);
     }
     
-         // Limpiar todos los puntos del mapa
-     this.pointsMap.forEach((point) => {
-       point.remove();
-     });
-     this.pointsMap.clear();
-     this.lastPlottedPoint = null;
-     this.pointsToPlot = [];
+    // Limpiar Canvas
+    if (this.ctx && this.canvas) {
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+    this.canvasPoints = [];
+    
+    // Limpiar todos los puntos del mapa SVG (si los hay)
+    this.pointsMap.forEach((point) => {
+      point.remove();
+    });
+    this.pointsMap.clear();
+    this.lastPlottedPoint = null;
+    this.lastFilteredPoint = null;
+    this.pointsToPlot = [];
+    this.needsRender = false;
   }
 
   /**
    * Starts the render loop using requestAnimationFrame for smoother performance
+   * Only renders when there are actual changes to improve performance
    */
   private startRenderLoop(): void {
     const render = () => {
-      if (this.mapping && this.pointsToPlot.length > 0) {
-        this.plotStoredPoints();
-      }
       if (this.mapping) {
+        if (this.pointsToPlot.length > 0) {
+          this.plotStoredPoints();
+          this.needsRender = true;
+        }
+        
+        // Solo renderizar si hay cambios o necesita limpieza
+        if (this.needsRender) {
+          this.cleanupOldPoints();
+          this.needsRender = false;
+        }
+        
         this.animationFrameId = requestAnimationFrame(render);
       }
     };
@@ -92,51 +121,78 @@ export class MapComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Cleanup old points more efficiently using batch operations
+   */
+  private cleanupOldPoints(): void {
+    const currentTime = Date.now();
+    const initialLength = this.canvasPoints.length;
+    
+    this.canvasPoints = this.canvasPoints.filter(point => 
+      currentTime - point.timestamp < this.pointLifetime
+    );
+    
+    // Solo re-renderizar si se eliminaron puntos
+    if (this.canvasPoints.length !== initialLength) {
+      this.renderCanvasPoints();
+    }
+  }
+
+  /**
    * Fetches mapping values from the backend and stores them in a list for later visualization.
    * This function is periodically triggered to ensure new points are continuously added.
+   * Uses dynamic throttling based on current buffer size for optimal performance.
    */
-    receivePointsFromBackend(): void {
-      // Solo hacer request si estamos mapeando y no tenemos demasiados puntos pendientes
-      if (!this.mapping || this.pointsToPlot.length > 300) {
-        return;
-      }
-
-      this.mappingValueService.getMappingValues().subscribe({
-        next: (data) => {
-          if (Array.isArray(data) && data.length > 0) {
-            // Agregar puntos en lote para mejor rendimiento
-            this.pointsToPlot.push(...data);
-            
-            // Limitar el buffer para evitar acumulación excesiva
-            if (this.pointsToPlot.length > 500) {
-              this.pointsToPlot = this.pointsToPlot.slice(-400); // Mantener solo los últimos 300
-            }
-          }
-        },
-        error: (error) => {
-          console.warn('Error fetching mapping data:', error);
-        }
-      });
+  receivePointsFromBackend(): void {
+    // Throttling dinámico: reducir requests si hay muchos puntos pendientes
+    const bufferRatio = this.pointsToPlot.length / 500;
+    if (!this.mapping || bufferRatio > 0.9) {
+      console.log("Salteando...");
+      return; // Saltar request si buffer está muy lleno
     }
+
+    this.mappingValueService.getMappingValues().subscribe({
+      next: (data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          // Filtrar datos en el backend para reducir transferencia
+          const filteredData = data.filter((point, index) => 
+            index % Math.max(1, Math.floor(bufferRatio * 3)) === 0 // Saltear puntos si hay mucha carga
+          );
+          
+          // Agregar puntos en lote para mejor rendimiento
+          this.pointsToPlot.push(...filteredData);
+          
+          // Limitar el buffer para evitar acumulación excesiva
+          if (this.pointsToPlot.length > 600) {
+            this.pointsToPlot = this.pointsToPlot.slice(-500); // Mantener solo los últimos 500
+            console.log("Buffer lleno, eliminando puntos...");
+          }
+        }
+      },
+      error: (error) => {
+        console.warn('Error fetching mapping data:', error);
+      }
+    });
+  }
     
 
   /**
-   * Plots stored points on the map by converting their polar coordinates to Cartesian.
+   * Plots stored points on the map using Canvas for better performance.
    * After plotting, the points are removed from the list to prevent duplication.
    * Each point remains visible for a defined lifetime before being removed.
    */ 
   plotStoredPoints(): void {
-    if (!this.pointsToPlot.length || !this.mapping) {
+    if (!this.pointsToPlot.length || !this.mapping || !this.ctx) {
       return; // Nada que graficar
     }
 
     // Procesar un batch de puntos por frame
     const numPointsToProcess = Math.min(this.maxPointsPerFrame, this.pointsToPlot.length);
     const pointsToProcess = this.pointsToPlot.splice(0, numPointsToProcess);
+    const currentTime = Date.now();
 
-    // Convertir puntos a coordenadas cartesianas
+    // Convertir puntos a coordenadas cartesianas y agregar al array de Canvas
     pointsToProcess.forEach((point) => {
-      let meters = point.distance / 500; // Convertir mm a metros
+      let meters = point.distance / 1000; // Convertir mm a metros
       
       // Filtrar puntos fuera del rango máximo
       if (meters > this.maxDistance) {
@@ -146,42 +202,65 @@ export class MapComponent implements OnInit, OnDestroy {
 
       const { x, y } = this.robotCoordinatesToChart(meters, point.angle);
       
-      // Dibujar punto
-      const newPoint = this.svg
-        .append('circle')
-        .attr('cx', x)
-        .attr('cy', y)
-        .attr('r', 2)
-        .attr('fill', 'black');
-
-      // Dibujar línea al punto anterior si existe
-      // if (this.lastPlottedPoint) {
-      //   const line = this.svg
-      //     .append('line')
-      //     .attr('x1', this.lastPlottedPoint.x)
-      //     .attr('y1', this.lastPlottedPoint.y)
-      //     .attr('x2', x)
-      //     .attr('y2', y)
-      //     .attr('stroke', 'black')
-      //     .attr('stroke-width', 1);
+      // Filtro de distancia: solo agregar si está lo suficientemente lejos del último punto
+      if (this.lastFilteredPoint) {
+        const distance = Math.sqrt(
+          Math.pow(x - this.lastFilteredPoint.x, 2) + 
+          Math.pow(y - this.lastFilteredPoint.y, 2)
+        );
         
-      //   // Programar eliminación de la línea
-      //   setTimeout(() => {
-      //     line.remove();
-      //   }, this.pointLifetime);
-      // }
+        if (distance < this.minPointDistance) {
+          return; // Omitir punto muy cercano
+        }
+      }
+      
+      // Agregar punto al array de Canvas con timestamp
+      this.canvasPoints.push({
+        x: x,
+        y: y,
+        timestamp: currentTime
+      });
 
-      // Actualizar último punto
+      // Actualizar último punto para líneas y filtrado
       this.lastPlottedPoint = { x, y };
+      this.lastFilteredPoint = { x, y };
+    });
+
+    // Renderizar todos los puntos en Canvas
+    this.renderCanvasPoints();
+  }
+
+  /**
+   * Renders all points and lines on Canvas for optimal performance
+   */
+  private renderCanvasPoints(): void {
+    if (!this.ctx || !this.canvas) return;
+
+    // Limpiar canvas
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    
+    // Configurar estilo
+    this.ctx.fillStyle = 'black';
+    this.ctx.strokeStyle = 'black';
+    this.ctx.lineWidth = 4;
+
+    // Dibujar líneas conectando puntos consecutivos
+    if (this.canvasPoints.length > 1) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(this.canvasPoints[0].x, this.canvasPoints[0].y);
       
-      // Programar eliminación del punto
-      const pointId = Date.now() + Math.random();
-      this.pointsMap.set(pointId, newPoint);
+      for (let i = 1; i < this.canvasPoints.length; i++) {
+        this.ctx.lineTo(this.canvasPoints[i].x, this.canvasPoints[i].y);
+      }
       
-      setTimeout(() => {
-        newPoint.remove();
-        this.pointsMap.delete(pointId);
-      }, this.pointLifetime);
+      this.ctx.stroke();
+    }
+
+    // Dibujar puntos
+    this.canvasPoints.forEach(point => {
+      this.ctx!.beginPath();
+      this.ctx!.arc(point.x, point.y, 2, 0, 2 * Math.PI);
+      this.ctx!.fill();
     });
   }
 
@@ -198,17 +277,36 @@ export class MapComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Creates and initializes the chart with SVG elements.
+   * Creates and initializes the chart with SVG elements for static content and Canvas for dynamic points.
    * It sets the dimensions of the chart, adds a white background, 
    * draws a border around the content area, and places the robot in the center of the chart.
    */
   createChart() {
-    this.svg = d3
-      .select('#chart')
+    // Crear contenedor div para SVG y Canvas
+    const chartContainer = d3.select('#chart');
+    
+    // Crear SVG para elementos estáticos (primero, como base)
+    this.svg = chartContainer
       .append('svg')
       .attr('width', this.width)
       .attr('height', this.height)
+      .style('position', 'absolute')
+      .style('top', '0')
+      .style('left', '0')
       .style('background', '#ffffff'); // Fondo blanco
+
+    // Crear Canvas para puntos dinámicos (encima del SVG)
+    this.canvas = chartContainer
+      .append('canvas')
+      .attr('width', this.width)
+      .attr('height', this.height)
+      .style('position', 'absolute')
+      .style('top', '0')
+      .style('left', '0')
+      .style('pointer-events', 'none') // Permitir que los eventos pasen al SVG debajo
+      .node() as HTMLCanvasElement;
+    
+    this.ctx = this.canvas.getContext('2d');
 
     // Crear borde alrededor del contenido
     this.svg
@@ -221,15 +319,13 @@ export class MapComponent implements OnInit, OnDestroy {
       .attr('stroke', '#213A7D')
       .attr('stroke-width', 16);
 
-    // Definir los puntos del triángulo
+    // Definir los puntos del triángulo usando las nuevas coordenadas del centro
     const triangleSize = 20;
-    const cx = this.width / 2;
-    const cy = this.height / 2;
 
     const points = [
-        [cx, cy - triangleSize], // Punta arriba
-        [cx - triangleSize, cy + triangleSize], // Esquina inferior izquierda
-        [cx + triangleSize, cy + triangleSize]  // Esquina inferior derecha
+        [this.centerX, this.centerY - triangleSize], // Punta arriba
+        [this.centerX - triangleSize, this.centerY + triangleSize], // Esquina inferior izquierda
+        [this.centerX + triangleSize, this.centerY + triangleSize]  // Esquina inferior derecha
     ].map(p => p.join(',')).join(' ');
 
     // Dibujar el triángulo en el centro
@@ -238,27 +334,44 @@ export class MapComponent implements OnInit, OnDestroy {
       .attr('points', points)
       .attr('fill', '#213A7D');
 
-        // Dibujar las circunferencias con los radios dados
-        const radii = [0.5, 1.0, 1.5, 2.0]; // Radios en metros (ajustados para maxDistance = 2m)
-        radii.forEach(radius => {
-            this.svg
-              .append('circle')
-              .attr('cx', cx)
-              .attr('cy', cy)
-              .attr('r', radius * this.scaleFactor) // Escalar el radio
-              .attr('fill', 'none')
-              .attr('stroke', '#213A7D')
-              .attr('stroke-width', 2);
-        });
+    // Dibujar las circunferencias con los radios dados y sus etiquetas
+    const radii = [0.5, 1.0, 1.5, 2.0]; // Radios en metros (ajustados para maxDistance = 2m)
+    radii.forEach(radius => {
+        // Dibujar círculo
+        this.svg
+          .append('circle')
+          .attr('cx', this.centerX)
+          .attr('cy', this.centerY)
+          .attr('r', radius * this.scaleFactor) // Escalar el radio
+          .attr('fill', 'none')
+          .attr('stroke', '#213A7D')
+          .attr('stroke-width', 2);
+
+        // Agregar etiqueta de distancia
+        this.svg
+          .append('text')
+          .attr('x', this.centerX + radius * this.scaleFactor + 5) // Posicionar a la derecha del círculo
+          .attr('y', this.centerY + 5) // Centrar verticalmente con un pequeño offset
+          .attr('fill', '#213A7D')
+          .attr('font-size', '14px')
+          .attr('font-weight', 'bold')
+          .text(`${radius}m`);
+    });
 }
 
 
   /**
    * Clears all stored points on the map by removing their corresponding graphical elements 
-   * from the SVG and resetting the points map.
+   * from the SVG and Canvas, and resetting the points maps.
    */
   restartMapping(){
-    // Recorrer todos los puntos almacenados en el mapa
+    // Limpiar Canvas
+    if (this.ctx && this.canvas) {
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+    this.canvasPoints = [];
+    
+    // Recorrer todos los puntos almacenados en el mapa SVG (si los hay)
     this.pointsMap.forEach((point) => {
       point.remove(); // Eliminar el elemento gráfico del SVG
     });
@@ -266,6 +379,9 @@ export class MapComponent implements OnInit, OnDestroy {
     // Limpiar el mapa de puntos y resetear último punto
     this.pointsMap.clear();
     this.lastPlottedPoint = null;
+    this.lastFilteredPoint = null;
+    this.pointsToPlot = [];
+    this.needsRender = false;
   }
   
 
@@ -282,15 +398,15 @@ export class MapComponent implements OnInit, OnDestroy {
       distance, 
       angle, // Ajuste para que 0° sea hacia adelante del robot
       this.scaleFactor, 
-      this.width / 2, 
-      this.height / 2, 
+      this.centerX, 
+      this.centerY, 
       true // Invertir Y para SVG
     );
   }
 
 
   /**
-   * Captures the current SVG map as an image, including a border around it. 
+   * Captures the current SVG map and Canvas points as an image, including a border around it. 
    * The image is saved as a PNG file with the border added around the map for clarity.
    */
   captureMap() {
@@ -309,10 +425,16 @@ export class MapComponent implements OnInit, OnDestroy {
     context!.fillStyle = '#213A7D'; // Color del borde
     context!.fillRect(0, 0, canvas.width, canvas.height);
   
-    const image = new Image();
-    image.onload = () => {
+    const svgImage = new Image();
+    svgImage.onload = () => {
       // Dibujar la imagen SVG centrada dentro del borde
-      context?.drawImage(image, borderSize, borderSize, this.width, this.height);
+      context?.drawImage(svgImage, borderSize, borderSize, this.width, this.height);
+      
+      // Dibujar el contenido del Canvas encima del SVG
+      if (this.canvas) {
+        context?.drawImage(this.canvas, borderSize, borderSize, this.width, this.height);
+      }
+      
       const dataURL = canvas.toDataURL('image/png');
   
       // Descargar la imagen
@@ -321,7 +443,7 @@ export class MapComponent implements OnInit, OnDestroy {
       link.download = 'map-capture-with-borders.png';
       link.click();
     };
-    image.src = `data:image/svg+xml;base64,${btoa(svgString)}`;
+    svgImage.src = `data:image/svg+xml;base64,${btoa(svgString)}`;
   }
   
   
