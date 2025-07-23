@@ -28,7 +28,9 @@
 #include "ap_server.h"
 #include "lights.h"
 #include "mqtt_server.h"
-#include "mapping.h"
+//#include "mapping.h"
+#include "LiDAR_Library/mapping.h"
+#include "LiDAR_Library/mapping_config.h"
 #include "Servo/servo_compatibility.h"
 #include "heap_trace_helper.h"
 #include "debug_helper.h"
@@ -175,7 +177,8 @@ esp_err_t system_init()
 
     DEBUGING_ESP_LOG(ESP_LOGI(TAG, "Iniciando Mapping Service..."));
     LOG_MESSAGE_I(TAG,"Iniciando Mapping Service...");
-    err = mapping_init();
+    mapping_config_t enhanced_config = MAPPING_CONFIG_NAVIGATION;
+    err = mapping_init_enhanced(&enhanced_config);
     if (err != ESP_OK)
     {
         DEBUGING_ESP_LOG(ESP_LOGE(TAG, "ERROR SETTING UP MAPPING: %s", esp_err_to_name(err)));
