@@ -454,17 +454,17 @@ bool i2c_read_addr16_data16(uint16_t addr, uint16_t *data)
     return read_reg(0x29, addr, REG_SIZE_16BIT, (uint8_t *)data);
 }
 
-bool i2c_read_addr8_data32(uint16_t addr, uint32_t *data)
+bool i2c_read_addr8_data32(uint8_t addr, uint32_t *data)
 {   
-    DEBUGING_ESP_LOG(ESP_LOGE(TAG, "ALERTA: El registro de dirección 8bits 32bits no es soportado"));
-    LOG_MESSAGE_E(TAG,"ALERTA: El registro de dirección 8bits 32bits no es soportado");
+    //DEBUGING_ESP_LOG(ESP_LOGE(TAG, "ALERTA: El registro de dirección 8bits 32bits no es soportado"));
+    //LOG_MESSAGE_E(TAG,"ALERTA: El registro de dirección 8bits 32bits no es soportado");
     return read_reg(0x29, addr, REG_SIZE_32BIT, (uint8_t *)data);
 }
 
 bool i2c_read_addr16_data32(uint16_t addr, uint32_t *data)
 {
-    DEBUGING_ESP_LOG(ESP_LOGE(TAG, "ALERTA: El registro de dirección 16bits 32bits no es soportado"));
-    LOG_MESSAGE_E(TAG,"ALERTA: El registro de dirección 16bits 32bits no es soportado");
+    //DEBUGING_ESP_LOG(ESP_LOGE(TAG, "ALERTA: El registro de dirección 16bits 32bits no es soportado"));
+    //LOG_MESSAGE_E(TAG,"ALERTA: El registro de dirección 16bits 32bits no es soportado");
     return read_reg(0x29, addr, REG_SIZE_32BIT, (uint8_t *)data);
 }
 

@@ -34,7 +34,7 @@ export class MapComponent implements OnInit, OnDestroy {
   private maxDistance = 2.5; // Distancia máxima en metros (aumentada para LiDAR)
   private scaleFactor = this.width / (this.maxDistance * 0.9); // Escala para convertir metros a pixeles
   private pointsMap: Map<number, any> = new Map();
-  private pointLifetime = 20 * 1000; // Tiempo en milisegundos antes de borrar un punto
+  private pointLifetime = 40 * 1000; // Tiempo en milisegundos antes de borrar un punto
   
   // Centro desplazado hacia abajo para simular sonar de barco
   private centerX = this.width / 2;
@@ -61,7 +61,7 @@ export class MapComponent implements OnInit, OnDestroy {
    */
   ngOnInit() {
     this.createChart();
-    this.backendPollingInterval = setInterval(() => this.receivePointsFromBackend(), 150) as any; // Más frecuente para Canvas
+    this.backendPollingInterval = setInterval(() => this.receivePointsFromBackend(), 200) as any; // Más frecuente para Canvas
     this.startRenderLoop(); // Usar requestAnimationFrame para rendering
   }
 
@@ -192,7 +192,7 @@ export class MapComponent implements OnInit, OnDestroy {
 
     // Convertir puntos a coordenadas cartesianas y agregar al array de Canvas
     pointsToProcess.forEach((point) => {
-      let meters = point.distance / 1000; // Convertir mm a metros
+      let meters = point.distance > 700 ? 1 : point.distance / 1000; // Convertir mm a metros
       
       // Filtrar puntos fuera del rango máximo
       if (meters > this.maxDistance) {
@@ -242,7 +242,7 @@ export class MapComponent implements OnInit, OnDestroy {
     // Configurar estilo
     this.ctx.fillStyle = 'black';
     this.ctx.strokeStyle = 'black';
-    this.ctx.lineWidth = 4;
+    this.ctx.lineWidth = 3;
 
     // Dibujar líneas conectando puntos consecutivos
     if (this.canvasPoints.length > 1) {

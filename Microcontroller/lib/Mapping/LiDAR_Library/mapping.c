@@ -57,7 +57,7 @@ const mapping_config_t MAPPING_CONFIG_DEFAULT = {
     .measurement_period_ms = 25,        // 25ms between measurements
     .servo_angular_velocity = 30.0f,    // 30 degrees per second
     .min_range_mm = 50,                 // 50mm minimum range
-    .max_range_mm = 2000,               // 2000mm maximum range
+    .max_range_mm = 1000,               // 2000mm maximum range
     .filter_window_size = 3,            // 3-point moving average filter
     .motion_compensation_enabled = false, // Disabled by default
     .adaptive_sampling_enabled = true,  // Adaptive sampling enabled
@@ -304,7 +304,15 @@ esp_err_t mapping_init_enhanced(const mapping_config_t *config)
         mapping_state.calibrated = true;
     }
     
-    
+    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    // Set servo position to 0 for start
+    err = servo_simple_set_position(0);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Error setting servo position for start");
+        LOG_MESSAGE_E(TAG, "Error setting servo position for start");
+        return ESP_FAIL;
+    }
 
     ESP_LOGI(TAG, "Enhanced Mapping System initialized successfully with calibration");
     return ESP_OK;
@@ -509,11 +517,12 @@ static esp_err_t getValue_enhanced(vl53l0x_measurement_t *measurement)
         measurement->range_status = 0;       // Good status
         measurement->valid = true;
     } else {
-        // Poor measurement - assign low quality values
+        // Poor measurement or out-of-range - assign low quality values
         measurement->signal_rate = 10;       // Very low signal
         measurement->ambient_rate = 600;     // High ambient light
         measurement->range_status = 1;       // Poor status
-        measurement->valid = false;
+        measurement->range_mm = mapping_state.config.max_range_mm;
+        measurement->valid = true;
     }
     
     // Update statistics

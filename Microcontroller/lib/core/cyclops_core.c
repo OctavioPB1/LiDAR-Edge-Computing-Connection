@@ -595,7 +595,7 @@ static void mappingTask(void *parameter)
 
         angle = 0;
         distance = 0;
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        vTaskDelay(500 / portTICK_PERIOD_MS);
     }
 }
 

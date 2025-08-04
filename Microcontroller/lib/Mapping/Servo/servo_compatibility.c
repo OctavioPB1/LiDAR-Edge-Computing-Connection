@@ -41,7 +41,7 @@ static bool g_direction_inverted = false;
 // Continuous sweep state
 static bool g_continuous_sweep_active = false;
 static bool g_continuous_sweep_paused = false;
-static uint32_t g_sweep_duration_ms = 20000; // 20 seconds for full sweep
+static uint32_t g_sweep_duration_ms = 20*1000; // 20 seconds for full sweep
 
 // Semaphores for thread safety
 static SemaphoreHandle_t g_servo_semaphore = NULL;
